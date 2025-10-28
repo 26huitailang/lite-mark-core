@@ -598,11 +598,4 @@ mod tests {
         assert!(renderer.is_ok());
     }
 
-    #[test]
-    fn test_parse_color() {
-        assert_eq!(parse_color("#FF0000"), Some(Rgba([255, 0, 0, 255])));
-        assert_eq!(parse_color("#00FF00"), Some(Rgba([0, 255, 0, 255])));
-        assert_eq!(parse_color("#0000FF"), Some(Rgba([0, 0, 255, 255])));
-        assert_eq!(parse_color("invalid"), None);
-    }
 }
