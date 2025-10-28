@@ -32,12 +32,15 @@
 
 3) 产品分层 — 功能优先级（MVP → v1 → v2）
 
-MVP（核心，目标 2–4 周）
-	•	CLI：读取图片（JPEG/HEIC/PNG）、读取 EXIF，生成带水印的新图片。
-	•	基本模板：3 种美观模板（左下、右下、顶部条），支持中文/英文文本。
-	•	批量处理（目录/通配符）。
-	•	高质量输出（保持原图分辨率/无损导出尽可能）。
-	•	开源 core（MIT/Apache2 可选）并发布二进制（Linux/macOS/Windows）。
+MVP（核心，已完成）✅
+	•	CLI：读取图片（JPEG/PNG）、读取 EXIF，生成带相框的新图片。
+	•	相框模式：底部相框显示参数和logo（logo居中，参数下方显示）。
+	•	字体渲染：使用 rusttype 实现专业字体渲染，支持中文/英文。
+	•	Logo 支持：自动加载和缩放 logo 图片。
+	•	模板系统：JSON 配置，支持变量替换。
+	•	批量处理（目录遍历）。
+	•	高质量输出（保持原图分辨率）。
+	•	开源 core（MIT）并配置 CI/CD（Linux/macOS/Windows）。
 
 v1（iOS 原型 + UX，目标 1–2 个月）
 	•	iOS 原生 App（或轻量 SwiftUI）调用 core。支持单张预览与批量队列。
@@ -84,12 +87,15 @@ core/
  ├─ wasm_bindings/      # wasm 绑定层
  └─ ffi/                 # C ABI 导出（供 iOS/macOS 使用）
 
-核心职责：
-	•	exif_reader：安全解析多种 EXIF 格式（包含 JPEG、HEIC、PNG metadata）。返回统一结构体（time, iso, aperture, shutter, focal, camera, lens, gps）。
-	•	layout_engine：模板 JSON 描述（位置、字号、对齐、背景块、透明度、阴影、边距、对 DPI 的响应式规则）。支持模板变量（{ISO}、{Aperture}、{Time}、{Author}）。
-	•	renderer：高质量文本渲染（支持中文），logo 缩放/透明处理，自动缩放水印（按图片短边百分比）。
+核心职责（已实现）：
+	•	exif_reader：EXIF 解析（占位符实现，待完善真实 EXIF 读取）。返回统一结构体（iso, aperture, shutter, focal, camera, lens, date_time, author）。
+	•	layout：模板 JSON 解析、变量替换（{ISO}、{Aperture}、{Time}、{Author}等）。
+	•	renderer：相框模式渲染、rusttype 字体渲染（支持中文），logo 加载和缩放，底部相框生成。
+	•	io：图片加载/保存，批量处理目录遍历。
+	
+待实现：
 	•	wasm_bindings：暴露 JS-friendly 函数：processImage(inputBlob, templateJSON) -> outputBlob。
-	•	ffi：C ABI：process(path_in, path_out, template_json_cstr)。
+	•	ffi：C ABI：process(path_in, path_out, template_json_cstr)（用于 iOS 集成）。
 
 ⸻
 
@@ -99,18 +105,23 @@ core/
 	•	对中文/英文做字体回退策略（中文需打包或提供字体下载提示）。
 	•	提供 5-10 个内置模板（摄影感、极简、社媒封面、左下参数条、右下角小签名等）。
 
-模板示例（简化）：
+模板示例（当前实现）：
 
 {
   "name": "ClassicParam",
   "anchor": "bottom-left",
-  "padding": 24,
+  "padding": 0,
   "items": [
-    {"type":"text","value":"{Author}","font_size":20,"weight":"bold"},
-    {"type":"text","value":"{Aperture} | {ISO} | {Shutter}","font_size":14}
-  ],
-  "background": {"type":"rect","opacity":0.25,"radius":6}
+    {"type": "logo", "value": "path/to/logo.png"},
+    {"type": "text", "value": "{Author}", "font_size": 20, "color": "#000000"},
+    {"type": "text", "value": "{Aperture} | ISO {ISO} | {Shutter}", "font_size": 16, "color": "#000000"}
+  ]
 }
+
+相框布局：
+- 底部添加 100px 白色相框
+- Logo 居中显示（相框上半部分）
+- 摄影师姓名和参数文字（相框下半部分，居中显示）
 
 
 ⸻
@@ -217,13 +228,18 @@ Week 0 (准备)
 	•	设 repo，确定 license，CI skeleton。
 	•	收集 20 张测试图片（多种分辨率/HEIC/JPEG）。
 
-Week 1–2 (Core MVP)
-	•	Rust 项目初始化，EXIF 解析、基础模板 JSON、CLI skeleton。
-	•	实现 single-image process -> output。单元测试。
+Week 1–2 (Core MVP) ✅ 已完成
+	•	Rust 项目初始化，EXIF 解析模块、模板引擎、CLI 工具。
+	•	实现相框模式渲染：底部相框 + logo + 参数文字。
+	•	集成 rusttype 字体渲染（支持多语言）。
+	•	批量处理功能。
+	•	单元测试覆盖核心功能。
 
-Week 3 (批量 + templates)
-	•	批量处理、template engine、内置 3 模板。生成 release binary。
-	•	发布 GitHub Release，写 README + demo。
+Week 3 (完善 + 发布) ✅ 已完成
+	•	优化字体渲染和文本定位。
+	•	完善模板系统（变量替换）。
+	•	配置 CI/CD（GitHub Actions）。
+	•	完善 README 和文档。
 
 Week 4–6 (iOS 原型）
 	•	Rust -> staticlib 编译 + Swift wrapper。
