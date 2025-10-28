@@ -105,29 +105,31 @@ pub fn create_builtin_templates() -> Vec<Template> {
         Template {
             name: "ClassicParam".to_string(),
             anchor: Anchor::BottomLeft,
-            padding: 24,
+            padding: 0,
             items: vec![
+                TemplateItem {
+                    item_type: ItemType::Logo,
+                    value: "".to_string(), // Logo path will be set by user or default
+                    font_size: 0,
+                    weight: None,
+                    color: None,
+                },
                 TemplateItem {
                     item_type: ItemType::Text,
                     value: "{Author}".to_string(),
-                    font_size: 20,
+                    font_size: 16,
                     weight: Some(FontWeight::Bold),
-                    color: Some("#FFFFFF".to_string()),
+                    color: Some("#000000".to_string()),
                 },
                 TemplateItem {
                     item_type: ItemType::Text,
                     value: "{Aperture} | ISO {ISO} | {Shutter}".to_string(),
-                    font_size: 14,
+                    font_size: 12,
                     weight: Some(FontWeight::Normal),
-                    color: Some("#FFFFFF".to_string()),
+                    color: Some("#000000".to_string()),
                 },
             ],
-            background: Some(Background {
-                bg_type: BackgroundType::Rectangle,
-                opacity: 0.3,
-                radius: Some(6),
-                color: Some("#000000".to_string()),
-            }),
+            background: None, // Frame background is handled separately
         },
         Template {
             name: "Modern".to_string(),
