@@ -1,4 +1,4 @@
-use crate::layout::{Background, ItemType, Template};
+use crate::layout::{ItemType, Template};
 use image::{DynamicImage, Rgba, RgbaImage};
 use rusttype::{point, Font, Scale};
 use std::collections::HashMap;
@@ -40,7 +40,6 @@ impl WatermarkRenderer {
 
         // Create frame: add bottom border for parameters and logo
         let bottom_frame_height = 100; // Height of the bottom frame area
-        let side_padding = 0; // No side padding for now
 
         // Create new canvas with frame
         let new_width = original_width;
@@ -145,7 +144,6 @@ impl WatermarkRenderer {
             let color = Rgba([0, 0, 0, 255]); // Black text
 
             // Better text centering: estimate text width based on font metrics
-            let scale = Scale::uniform(font_size as f32);
             let char_count = substituted_text.len();
             let estimated_width = (char_count as f32 * font_size as f32 * 0.6) as i32; // Rough estimate
             let text_x = center_x as i32 - (estimated_width / 2);
@@ -260,12 +258,8 @@ impl WatermarkRenderer {
         // Layout and render glyphs
         let glyphs: Vec<_> = self.font.layout(text, scale, offset).collect();
 
-        let mut glyph_count = 0;
-        let mut pixels_drawn = 0;
-
         for glyph in glyphs {
             if let Some(bounding_box) = glyph.pixel_bounding_box() {
-                glyph_count += 1;
                 // Build glyph image
                 glyph.draw(|px, py, v| {
                     let px = px as i32 + bounding_box.min.x;
@@ -279,7 +273,6 @@ impl WatermarkRenderer {
                             // Use solid color for better visibility
                             let pixel_color = Rgba([color[0], color[1], color[2], 255]);
                             image.put_pixel(px as u32, py as u32, pixel_color);
-                            pixels_drawn += 1;
                         }
                     }
                 });
@@ -287,127 +280,8 @@ impl WatermarkRenderer {
         }
     }
 
-    fn render_background(
-        &self,
-        image: &mut RgbaImage,
-        background: &Background,
-        x: i32,
-        y: i32,
-        width: u32,
-        height: u32,
-    ) -> Result<(), Box<dyn std::error::Error>> {
-        let bg_color = background
-            .color
-            .as_ref()
-            .and_then(|c| parse_color(c))
-            .unwrap_or(Rgba([0, 0, 0, (255.0 * background.opacity) as u8]));
-
-        // Calculate background size based on content - make it larger and more visible
-        let bg_width = 400; // Increased width
-        let bg_height = 120; // Increased height
-
-        let (bg_x, bg_y) = match (x, y) {
-            (x, y) if x < width as i32 / 2 && y < height as i32 / 2 => (x, y), // Top-left
-            (x, y) if x >= width as i32 / 2 && y < height as i32 / 2 => (x - bg_width, y), // Top-right
-            (x, y) if x < width as i32 / 2 && y >= height as i32 / 2 => (x, y - bg_height), // Bottom-left
-            (x, y) => (x - bg_width, y - bg_height), // Bottom-right
-        };
-
-        // Draw background rectangle with padding and border
-        let padding = 10;
-        for dy in -padding..bg_height + padding {
-            for dx in -padding..bg_width + padding {
-                let px = (bg_x + dx).max(0).min(width as i32 - 1) as u32;
-                let py = (bg_y + dy).max(0).min(height as i32 - 1) as u32;
-
-                if px < width && py < height {
-                    // Add some border effect
-                    let is_border = dx < 0 || dx >= bg_width || dy < 0 || dy >= bg_height;
-                    let border_color = if is_border {
-                        Rgba([255, 255, 255, (255.0 * background.opacity * 0.8) as u8])
-                    // White border
-                    } else {
-                        bg_color
-                    };
-                    image.put_pixel(px, py, border_color);
-                }
-            }
-        }
-
-        Ok(())
-    }
-
-    fn render_text(
-        &self,
-        image: &mut RgbaImage,
-        text: &str,
-        x: i32,
-        y: i32,
-        font_size: u32,
-        color: &Option<String>,
-    ) -> Result<(), Box<dyn std::error::Error>> {
-        let text_color = color
-            .as_ref()
-            .and_then(|c| parse_color(c))
-            .unwrap_or(Rgba([255, 255, 255, 255])); // Bright white for better visibility
-
-        // Simple text rendering using basic pixel drawing
-        self.draw_simple_text(image, text, x, y, font_size, text_color);
-
-        Ok(())
-    }
-
-    fn draw_simple_text(
-        &self,
-        image: &mut RgbaImage,
-        text: &str,
-        x: i32,
-        y: i32,
-        font_size: u32,
-        color: Rgba<u8>,
-    ) {
-        // Make characters larger and more visible
-        let char_width = (font_size as f32 * 1.2) as i32; // Increased width
-        let char_height = (font_size as f32 * 1.8) as i32; // Increased height
-
-        for (i, ch) in text.chars().enumerate() {
-            let char_x = x + (i as i32 * char_width);
-            let char_y = y;
-
-            // Draw a simple representation of each character
-            self.draw_character(image, ch, char_x, char_y, char_width, char_height, color);
-        }
-    }
-
-    fn draw_character(
-        &self,
-        image: &mut RgbaImage,
-        ch: char,
-        x: i32,
-        y: i32,
-        width: i32,
-        height: i32,
-        color: Rgba<u8>,
-    ) {
-        let (img_width, img_height) = image.dimensions();
-
-        // Simple character drawing - just draw a pattern based on the character
-        for dy in 0..height {
-            for dx in 0..width {
-                let px = x + dx;
-                let py = y + dy;
-
-                if px >= 0 && py >= 0 && px < img_width as i32 && py < img_height as i32 {
-                    // Create a simple pattern based on the character
-                    let pattern = self.get_character_pattern(ch, dx, dy, width, height);
-                    if pattern {
-                        image.put_pixel(px as u32, py as u32, color);
-                    }
-                }
-            }
-        }
-    }
-
+    // Old custom font rendering methods (replaced by rusttype) - kept for reference
+    #[allow(dead_code)]
     fn get_character_pattern(&self, ch: char, x: i32, y: i32, width: i32, height: i32) -> bool {
         // More reliable character patterns using thicker lines
         match ch {
@@ -712,20 +586,6 @@ impl WatermarkRenderer {
             }
         }
     }
-}
-
-fn parse_color(color_str: &str) -> Option<Rgba<u8>> {
-    if color_str.starts_with('#') && color_str.len() == 7 {
-        let hex = &color_str[1..];
-        if let (Ok(r), Ok(g), Ok(b)) = (
-            u8::from_str_radix(&hex[0..2], 16),
-            u8::from_str_radix(&hex[2..4], 16),
-            u8::from_str_radix(&hex[4..6], 16),
-        ) {
-            return Some(Rgba([r, g, b, 255]));
-        }
-    }
-    None
 }
 
 #[cfg(test)]

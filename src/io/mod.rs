@@ -72,8 +72,6 @@ pub fn create_output_path(input_path: &str, output_dir: Option<&str>, suffix: &s
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::fs;
-    use tempfile::TempDir;
 
     #[test]
     fn test_create_output_path() {
