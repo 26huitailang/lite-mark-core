@@ -1,0 +1,16 @@
+Template 'Minimal':
+{
+  "name": "Minimal",
+  "anchor": "bottom-right",
+  "padding": 16,
+  "items": [
+    {
+      "type": "text",
+      "value": "{Author}",
+      "font_size": 14,
+      "weight": "normal",
+      "color": "#FFFFFF"
+    }
+  ],
+  "background": null
+}

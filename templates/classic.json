@@ -1,0 +1,27 @@
+{
+    "name": "ClassicParam",
+    "anchor": "bottom-left",
+    "padding": 24,
+    "items": [
+        {
+            "type": "text",
+            "value": "{Author}",
+            "font_size": 20,
+            "weight": "bold",
+            "color": "#FFFFFF"
+        },
+        {
+            "type": "text",
+            "value": "{Aperture} | ISO {ISO} | {Shutter}",
+            "font_size": 14,
+            "weight": "normal",
+            "color": "#FFFFFF"
+        }
+    ],
+    "background": {
+        "type": "rect",
+        "opacity": 0.3,
+        "radius": 6,
+        "color": "#000000"
+    }
+}

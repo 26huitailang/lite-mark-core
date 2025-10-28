@@ -1,0 +1,37 @@
+[package]
+name = "litemark"
+version = "0.1.0"
+edition = "2021"
+description = "A lightweight photo parameter watermark tool"
+license = "MIT"
+repository = "https://github.com/26huitailang/lite-mark-core"
+keywords = ["photo", "watermark", "exif", "photography"]
+categories = ["multimedia::images"]
+
+[[bin]]
+name = "litemark"
+path = "src/main.rs"
+
+[dependencies]
+# CLI framework
+clap = { version = "4.4", features = ["derive"] }
+
+# Image processing
+image = "0.24"
+
+# EXIF parsing
+kamadak-exif = "0.5"
+
+# JSON handling
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Error handling
+anyhow = "1.0"
+thiserror = "1.0"
+
+# File I/O
+walkdir = "2.4"
+
+[dev-dependencies]
+tempfile = "3.8"

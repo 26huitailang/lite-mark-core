@@ -1,0 +1,76 @@
+name: Release
+
+on:
+    push:
+        tags:
+            - "v*"
+    workflow_dispatch:
+
+jobs:
+    build:
+        runs-on: ${{ matrix.os }}
+        strategy:
+            matrix:
+                os: [ubuntu-latest, windows-latest, macos-latest]
+                include:
+                    - os: ubuntu-latest
+                      target: x86_64-unknown-linux-gnu
+                    - os: windows-latest
+                      target: x86_64-pc-windows-msvc
+                    - os: macos-latest
+                      target: x86_64-apple-darwin
+
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Install Rust
+              uses: actions-rs/toolchain@v1
+              with:
+                  toolchain: stable
+                  override: true
+
+            - name: Cache cargo registry
+              uses: actions/cache@v3
+              with:
+                  path: ~/.cargo/registry
+                  key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+
+            - name: Cache cargo index
+              uses: actions/cache@v3
+              with:
+                  path: ~/.cargo/git
+                  key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
+
+            - name: Cache cargo build
+              uses: actions/cache@v3
+              with:
+                  path: target
+                  key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
+
+            - name: Build
+              run: cargo build --release
+
+            - name: Test
+              run: cargo test
+
+            - name: Create release archive
+              shell: bash
+              run: |
+                  if [[ "${{ runner.os }}" == "Windows" ]]; then
+                    cp target/release/litemark.exe litemark.exe
+                    7z a litemark-${{ github.ref_name }}-windows-x64.zip litemark.exe
+                  elif [[ "${{ runner.os }}" == "macOS" ]]; then
+                    cp target/release/litemark litemark
+                    tar -czf litemark-${{ github.ref_name }}-macos-x64.tar.gz litemark
+                  else
+                    cp target/release/litemark litemark
+                    tar -czf litemark-${{ github.ref_name }}-linux-x64.tar.gz litemark
+                  fi
+
+            - name: Upload artifacts
+              uses: actions/upload-artifact@v3
+              with:
+                  name: litemark-${{ github.ref_name }}-${{ runner.os }}
+                  path: |
+                      litemark-${{ github.ref_name }}-*.zip
+                      litemark-${{ github.ref_name }}-*.tar.gz

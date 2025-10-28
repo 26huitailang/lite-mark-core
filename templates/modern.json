@@ -1,0 +1,28 @@
+Template 'Modern':
+{
+  "name": "Modern",
+  "anchor": "top-right",
+  "padding": 20,
+  "items": [
+    {
+      "type": "text",
+      "value": "{Camera} • {Lens}",
+      "font_size": 16,
+      "weight": "bold",
+      "color": "#FFFFFF"
+    },
+    {
+      "type": "text",
+      "value": "{Focal} • {Aperture} • {Shutter} • ISO {ISO}",
+      "font_size": 12,
+      "weight": "normal",
+      "color": "#CCCCCC"
+    }
+  ],
+  "background": {
+    "type": "rect",
+    "opacity": 0.2,
+    "radius": 8,
+    "color": "#000000"
+  }
+}
