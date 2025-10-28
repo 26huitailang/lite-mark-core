@@ -26,7 +26,15 @@ impl ExifData {
             author: None,
         }
     }
+}
 
+impl Default for ExifData {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl ExifData {
     pub fn to_variables(&self) -> HashMap<String, String> {
         let mut vars = HashMap::new();
 

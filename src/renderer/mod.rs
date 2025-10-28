@@ -156,7 +156,7 @@ impl WatermarkRenderer {
                 font_size,
                 color,
             );
-            current_y += font_size as u32 + 10;
+            current_y += font_size + 10;
         }
 
         Ok(())
