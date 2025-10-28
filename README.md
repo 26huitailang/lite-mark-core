@@ -94,6 +94,11 @@ All templates display:
 - Photographer name (below logo)
 - Shooting parameters (ISO, aperture, shutter speed, etc.)
 
+## Documentation
+
+- [Architecture Guide](docs/ARCHITECTURE.md) - Rendering principles and code structure
+- [Development Guide](docs/DEVELOPMENT.md) - Setup and contribution guidelines
+
 ## Development
 
 ### Project Structure
