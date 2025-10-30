@@ -30,6 +30,10 @@ enum Commands {
         /// Author name (overrides EXIF data)
         #[arg(long)]
         author: Option<String>,
+
+        /// Custom font file path (uses default if not specified)
+        #[arg(long)]
+        font: Option<String>,
     },
 
     /// Batch process images in a directory
@@ -49,6 +53,10 @@ enum Commands {
         /// Author name (overrides EXIF data)
         #[arg(long)]
         author: Option<String>,
+
+        /// Custom font file path (uses default if not specified)
+        #[arg(long)]
+        font: Option<String>,
     },
 
     /// List available templates
@@ -70,16 +78,30 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             template,
             output,
             author,
+            font,
         } => {
-            process_single_image(&input, &template, &output, author.as_deref())?;
+            process_single_image(
+                &input,
+                &template,
+                &output,
+                author.as_deref(),
+                font.as_deref(),
+            )?;
         }
         Commands::Batch {
             input_dir,
             template,
             output_dir,
             author,
+            font,
         } => {
-            process_batch(&input_dir, &template, &output_dir, author.as_deref())?;
+            process_batch(
+                &input_dir,
+                &template,
+                &output_dir,
+                author.as_deref(),
+                font.as_deref(),
+            )?;
         }
         Commands::Templates => {
             list_templates();
@@ -97,6 +119,7 @@ fn process_single_image(
     template_name: &str,
     output_path: &str,
     author: Option<&str>,
+    font: Option<&str>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     println!("Processing image: {}", input_path);
 
@@ -121,7 +144,18 @@ fn process_single_image(
     println!("Final variables: {:?}", variables);
 
     // Render watermark
-    let renderer = WatermarkRenderer::new()?;
+    // Check for custom font from CLI or environment variable (own the String then borrow)
+    let env_font = std::env::var("LITEMARK_FONT").ok();
+    let font_path_owned: Option<String> = match (font, env_font) {
+        (Some(f), _) => Some(f.to_string()),
+        (None, e) => e,
+    };
+    if let Some(ref path) = font_path_owned {
+        println!("Using custom font: {}", path);
+    } else {
+        println!("Using default embedded font");
+    }
+    let renderer = WatermarkRenderer::with_font(font_path_owned.as_deref())?;
     renderer.render_watermark(&mut image, &template, &variables)?;
 
     // Save output
@@ -136,6 +170,7 @@ fn process_batch(
     template_name: &str,
     output_dir: &str,
     author: Option<&str>,
+    font: Option<&str>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     println!("Batch processing directory: {}", input_dir);
 
@@ -155,7 +190,13 @@ fn process_batch(
     let mut errors = 0;
 
     for image_path in images {
-        match process_single_image_in_batch(&image_path, &template, output_dir, author) {
+        match process_single_image_in_batch(
+            &image_path,
+            &template,
+            output_dir,
+            author,
+            font.as_deref(),
+        ) {
             Ok(_) => {
                 processed += 1;
                 println!("✓ Processed: {}", image_path);
@@ -179,6 +220,7 @@ fn process_single_image_in_batch(
     template: &Template,
     output_dir: &str,
     author: Option<&str>,
+    font: Option<&str>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     // Load image
     let mut image = litemark::io::load_image(input_path)?;
@@ -193,7 +235,13 @@ fn process_single_image_in_batch(
     }
 
     // Render watermark
-    let renderer = WatermarkRenderer::new()?;
+    // Check for custom font from CLI or environment variable (own the String then borrow)
+    let env_font = std::env::var("LITEMARK_FONT").ok();
+    let font_path_owned: Option<String> = match (font, env_font) {
+        (Some(f), _) => Some(f.to_string()),
+        (None, e) => e,
+    };
+    let renderer = WatermarkRenderer::with_font(font_path_owned.as_deref())?;
     renderer.render_watermark(&mut image, template, &variables)?;
 
     // Create output path

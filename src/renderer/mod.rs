@@ -8,23 +8,53 @@ pub struct WatermarkRenderer {
 }
 
 impl WatermarkRenderer {
+    /// Create a new renderer with default embedded font
     pub fn new() -> Result<Self, Box<dyn std::error::Error>> {
-        // Try to load embedded font
+        Self::with_font(None)
+    }
+
+    /// Create a new renderer with specified font path, or default if None
+    pub fn with_font(font_path: Option<&str>) -> Result<Self, Box<dyn std::error::Error>> {
+        if let Some(path) = font_path {
+            // Try to load custom font from file
+            let font_data = std::fs::read(path)
+                .map_err(|e| format!("Failed to read font file {}: {}", path, e))?;
+
+            // Validate font data
+            if font_data.len() < 100 {
+                return Err("Font file appears to be invalid or empty".into());
+            }
+
+            // Leak the boxed data to obtain a 'static slice reference for rusttype
+            let leaked: &'static [u8] = Box::leak(font_data.into_boxed_slice());
+            let font = Font::try_from_bytes(leaked).ok_or_else(|| {
+                format!("Failed to parse font data (size: {} bytes)", leaked.len())
+            })?;
+
+            Ok(WatermarkRenderer { font })
+        } else {
+            // Use default embedded font
+            let font = Self::load_default_font()?;
+            Ok(WatermarkRenderer { font })
+        }
+    }
+
+    /// Load default embedded font
+    fn load_default_font() -> Result<Font<'static>, Box<dyn std::error::Error>> {
+        // Default font: DejaVu Sans (embedded at compile time)
         let font_data = include_bytes!("../../assets/fonts/DejaVuSans.ttf");
 
         // Validate font data
         if font_data.len() < 100 {
-            return Err("Font file appears to be invalid or empty".into());
+            return Err("Default font file appears to be invalid or empty".into());
         }
 
-        let font = Font::try_from_bytes(font_data).ok_or_else(|| {
+        Ok(Font::try_from_bytes(font_data).ok_or_else(|| {
             format!(
-                "Failed to parse font data (size: {} bytes)",
+                "Failed to parse default font data (size: {} bytes)",
                 font_data.len()
             )
-        })?;
-
-        Ok(WatermarkRenderer { font })
+        })?)
     }
 
     pub fn render_watermark(
@@ -597,5 +627,4 @@ mod tests {
         let renderer = WatermarkRenderer::new();
         assert!(renderer.is_ok());
     }
-
 }
