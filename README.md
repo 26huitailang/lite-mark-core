@@ -4,14 +4,20 @@ A lightweight photo parameter frame tool for photography enthusiasts.
 
 ## Features
 
-- 📸 Extract EXIF data (ISO, aperture, shutter speed, focal length, etc.)
-- 🖼️ Frame mode: Add bottom frame with shooting parameters and logo
-- 🎨 Template system with customizable layouts (JSON-based)
-- 🔤 Professional font rendering with rusttype (supports English, Chinese, etc.)
-- 🖼️ Logo support with automatic scaling
-- 📱 Batch processing support
-- 🔒 Privacy-first: all processing happens locally
-- 🎯 Simple CLI interface
+- 📸 **Extract EXIF data** - Real-time extraction of ISO, aperture, shutter speed, focal length, etc.
+  - ✅ Supports JPEG, PNG, TIFF formats
+  - ✅ Auto-detects camera model and lens information
+  - ✅ Compatible with images without EXIF data
+  - ✅ Smart formatting (e.g., "1/125", "f/2.8", "50mm")
+- 🖼️ **Frame mode** - Add bottom frame with shooting parameters and logo
+- 🎨 **Template system** - Customizable layouts with JSON-based configuration
+- 🔤 **Professional font rendering** - Using rusttype for high-quality text
+  - ⚠️ Note: Default font (DejaVu Sans) supports English only
+  - 💡 For Chinese text, use `--font` parameter or set `LITEMARK_FONT` environment variable
+- 🖼️ **Logo support** - Automatic scaling and positioning
+- 📱 **Batch processing** - Process entire directories
+- 🔒 **Privacy-first** - All processing happens locally, no cloud upload
+- 🎯 **Simple CLI interface** - Easy to use command-line tool
 
 ## Installation
 
@@ -83,6 +89,24 @@ LiteMark uses JSON-based templates for flexible frame layouts:
 - `{Lens}` - Lens model
 - `{DateTime}` - Photo capture time
 
+### Chinese Font Support
+
+**Important:** The default font (DejaVu Sans) only supports English characters.
+
+For Chinese text in watermarks:
+
+```bash
+# Use --font parameter
+litemark add -i photo.jpg -o output.jpg --author "张三" \
+  --font "/System/Library/Fonts/PingFang.ttc"
+
+# Or set environment variable
+export LITEMARK_FONT="/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc"
+litemark add -i photo.jpg -o output.jpg --author "李四"
+```
+
+📚 **See detailed guide:** [Chinese Font Configuration Guide](examples/chinese_font_guide.md)
+
 ## Built-in Templates
 
 1. **ClassicParam** - Bottom frame with centered logo, photographer name, and shooting parameters
@@ -98,6 +122,8 @@ All templates display:
 
 - [Architecture Guide](docs/ARCHITECTURE.md) - Rendering principles and code structure
 - [Development Guide](docs/DEVELOPMENT.md) - Setup and contribution guidelines
+- [EXIF Extraction Guide](examples/exif_extraction.md) - How EXIF data extraction works
+- [Chinese Font Guide](examples/chinese_font_guide.md) - Configure Chinese fonts for watermarks
 
 ## Development
 
@@ -144,11 +170,13 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## Roadmap
 
 - [x] CLI tool with frame mode
+- [x] **Real EXIF data extraction** (kamadak-exif integration)
 - [x] Professional font rendering (rusttype)
 - [x] Logo support
-- [x] Multi-language support (English, Chinese)
 - [x] Template system
 - [x] Batch processing
+- [x] Comprehensive unit tests
+- [ ] Chinese font bundling or better font configuration
 - [ ] iOS App integration
 - [ ] Web interface (WASM)
 - [ ] More template options

@@ -68,9 +68,41 @@ pub struct ExifData {
 }
 ```
 
-**当前实现：**
-- 使用占位符数据（开发阶段）
-- 未来将集成 `kamadak-exif` 进行真实 EXIF 解析
+**实现方式：**
+- 使用 `kamadak-exif` 库进行真实 EXIF 解析
+- 支持 JPEG、PNG、TIFF 等格式
+- 优雅处理无 EXIF 数据的情况
+
+**支持的 EXIF 字段：**
+
+| 字段 | EXIF 标签 | 数据类型 | 说明 |
+|------|-----------|----------|------|
+| iso | PhotographicSensitivity | SHORT/LONG | ISO 感光度 |
+| aperture | FNumber | RATIONAL | 光圈值（f-number） |
+| shutter_speed | ExposureTime | RATIONAL | 曝光时间（自动格式化） |
+| focal_length | FocalLength | RATIONAL | 焦距（mm） |
+| camera_model | Model | ASCII | 相机型号 |
+| lens_model | LensModel | ASCII | 镜头型号 |
+| date_time | DateTimeOriginal | ASCII | 拍摄时间 |
+| author | Artist | ASCII | 作者/摄影师 |
+
+**错误处理策略：**
+- 文件无法打开：返回错误
+- 文件无 EXIF 数据：返回空的 ExifData（所有字段为 None）
+- 特定字段缺失：该字段设为 None，其他字段正常解析
+- EXIF 数据损坏：记录警告，返回部分解析的数据
+
+**快门速度格式化：**
+```rust
+fn format_shutter_speed(exposure_time: f64) -> String {
+    if exposure_time >= 1.0 {
+        format!("{}s", exposure_time as u32)  // 如 "2s"
+    } else {
+        let denominator = (1.0 / exposure_time).round() as u32;
+        format!("1/{}", denominator)  // 如 "1/125"
+    }
+}
+```
 
 ### 2. Layout Engine (`src/layout/mod.rs`)
 
