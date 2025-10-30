@@ -1,6 +1,27 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+// Default values for template scaling ratios
+fn default_frame_height_ratio() -> f32 {
+    0.10
+}
+
+fn default_logo_size_ratio() -> f32 {
+    0.35
+}
+
+fn default_primary_font_ratio() -> f32 {
+    0.20
+}
+
+fn default_secondary_font_ratio() -> f32 {
+    0.14
+}
+
+fn default_padding_ratio() -> f32 {
+    0.10
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Template {
     pub name: String,
@@ -8,6 +29,21 @@ pub struct Template {
     pub padding: u32,
     pub items: Vec<TemplateItem>,
     pub background: Option<Background>,
+    /// Frame height as ratio of image short edge (default: 0.10 = 10%)
+    #[serde(default = "default_frame_height_ratio")]
+    pub frame_height_ratio: f32,
+    /// Logo size as ratio of frame height (default: 0.35 = 35%)
+    #[serde(default = "default_logo_size_ratio")]
+    pub logo_size_ratio: f32,
+    /// Primary font size as ratio of frame height (default: 0.20 = 20%)
+    #[serde(default = "default_primary_font_ratio")]
+    pub primary_font_ratio: f32,
+    /// Secondary font size as ratio of frame height (default: 0.14 = 14%)
+    #[serde(default = "default_secondary_font_ratio")]
+    pub secondary_font_ratio: f32,
+    /// Padding as ratio of frame height (default: 0.10 = 10%)
+    #[serde(default = "default_padding_ratio")]
+    pub padding_ratio: f32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -29,7 +65,11 @@ pub struct TemplateItem {
     #[serde(rename = "type")]
     pub item_type: ItemType,
     pub value: String,
+    #[serde(default)]
     pub font_size: u32,
+    /// Font size as ratio of frame height (overrides font_size if set > 0)
+    #[serde(default)]
+    pub font_size_ratio: f32,
     pub weight: Option<FontWeight>,
     pub color: Option<String>,
 }
@@ -111,6 +151,7 @@ pub fn create_builtin_templates() -> Vec<Template> {
                     item_type: ItemType::Logo,
                     value: "".to_string(), // Logo path will be set by user or default
                     font_size: 0,
+                    font_size_ratio: 0.0,
                     weight: None,
                     color: None,
                 },
@@ -118,6 +159,7 @@ pub fn create_builtin_templates() -> Vec<Template> {
                     item_type: ItemType::Text,
                     value: "{Author}".to_string(),
                     font_size: 16,
+                    font_size_ratio: 0.20, // 20% of frame height
                     weight: Some(FontWeight::Bold),
                     color: Some("#000000".to_string()),
                 },
@@ -125,11 +167,17 @@ pub fn create_builtin_templates() -> Vec<Template> {
                     item_type: ItemType::Text,
                     value: "{Aperture} | ISO {ISO} | {Shutter}".to_string(),
                     font_size: 12,
+                    font_size_ratio: 0.14, // 14% of frame height
                     weight: Some(FontWeight::Normal),
                     color: Some("#000000".to_string()),
                 },
             ],
             background: None, // Frame background is handled separately
+            frame_height_ratio: 0.10,
+            logo_size_ratio: 0.35,
+            primary_font_ratio: 0.20,
+            secondary_font_ratio: 0.14,
+            padding_ratio: 0.10,
         },
         Template {
             name: "Modern".to_string(),
@@ -140,6 +188,7 @@ pub fn create_builtin_templates() -> Vec<Template> {
                     item_type: ItemType::Text,
                     value: "{Camera} • {Lens}".to_string(),
                     font_size: 16,
+                    font_size_ratio: 0.20,
                     weight: Some(FontWeight::Bold),
                     color: Some("#FFFFFF".to_string()),
                 },
@@ -147,6 +196,7 @@ pub fn create_builtin_templates() -> Vec<Template> {
                     item_type: ItemType::Text,
                     value: "{Focal} • {Aperture} • {Shutter} • ISO {ISO}".to_string(),
                     font_size: 12,
+                    font_size_ratio: 0.14,
                     weight: Some(FontWeight::Normal),
                     color: Some("#CCCCCC".to_string()),
                 },
@@ -157,6 +207,11 @@ pub fn create_builtin_templates() -> Vec<Template> {
                 radius: Some(8),
                 color: Some("#000000".to_string()),
             }),
+            frame_height_ratio: 0.10,
+            logo_size_ratio: 0.35,
+            primary_font_ratio: 0.20,
+            secondary_font_ratio: 0.14,
+            padding_ratio: 0.10,
         },
         Template {
             name: "Minimal".to_string(),
@@ -166,10 +221,16 @@ pub fn create_builtin_templates() -> Vec<Template> {
                 item_type: ItemType::Text,
                 value: "{Author}".to_string(),
                 font_size: 14,
+                font_size_ratio: 0.18,
                 weight: Some(FontWeight::Normal),
                 color: Some("#FFFFFF".to_string()),
             }],
             background: None,
+            frame_height_ratio: 0.08, // Smaller frame for minimal design
+            logo_size_ratio: 0.35,
+            primary_font_ratio: 0.18,
+            secondary_font_ratio: 0.14,
+            padding_ratio: 0.10,
         },
     ]
 }
