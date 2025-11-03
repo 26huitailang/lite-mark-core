@@ -159,6 +159,13 @@ impl WatermarkRenderer {
         width: u32,
         height: u32,
     ) -> Result<(), Box<dyn std::error::Error>> {
+        // Determine positioning based on anchor (for future use)
+        let _anchor_for_future = match template.anchor {
+            crate::layout::Anchor::TopLeft | crate::layout::Anchor::BottomLeft => 0,
+            crate::layout::Anchor::TopRight | crate::layout::Anchor::BottomRight => width,
+            crate::layout::Anchor::Center => width / 2,
+        };
+
         let center_x = width / 2;
         let mut logo_path: Option<String> = None;
         let mut text_items: Vec<(String, f32, Option<String>)> = Vec::new();
@@ -228,10 +235,21 @@ impl WatermarkRenderer {
                 Rgba([0, 0, 0, 255])
             };
 
-            // Better text centering: estimate text width based on font metrics
+            // Calculate text position based on anchor
             let char_count = text.len();
             let estimated_width = (char_count as f32 * font_size * 0.6) as i32;
-            let text_x = center_x as i32 - (estimated_width / 2);
+
+            let text_x = match template.anchor {
+                crate::layout::Anchor::TopLeft | crate::layout::Anchor::BottomLeft => {
+                    padding as i32 // Left aligned
+                }
+                crate::layout::Anchor::TopRight | crate::layout::Anchor::BottomRight => {
+                    (width as i32) - estimated_width - (padding as i32) // Right aligned
+                }
+                crate::layout::Anchor::Center => {
+                    center_x as i32 - (estimated_width / 2) // Center aligned
+                }
+            };
 
             self.render_text_simple(
                 image,

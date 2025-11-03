@@ -283,10 +283,26 @@ fn load_template(template_name: &str) -> Result<Template, Box<dyn std::error::Er
         return Ok(template.clone());
     }
 
-    // Check if it's a file path
+    // Check if it's a file path (absolute or relative)
     if Path::new(template_name).exists() {
         let content = std::fs::read_to_string(template_name)?;
         return Ok(Template::from_json(&content)?);
+    }
+
+    // Try loading from templates/ directory
+    let template_file = format!("templates/{}.json", template_name);
+    if Path::new(&template_file).exists() {
+        let content = std::fs::read_to_string(&template_file)?;
+        return Ok(Template::from_json(&content)?);
+    }
+
+    // Try with .json extension if not already present
+    if !template_name.ends_with(".json") {
+        let template_with_ext = format!("templates/{}", template_name);
+        if Path::new(&template_with_ext).exists() {
+            let content = std::fs::read_to_string(&template_with_ext)?;
+            return Ok(Template::from_json(&content)?);
+        }
     }
 
     Err(format!("Template '{}' not found", template_name).into())

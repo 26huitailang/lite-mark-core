@@ -1,7 +1,6 @@
 {
   "name": "Minimal",
   "anchor": "bottom-right",
-  "padding": 16,
   "frame_height_ratio": 0.08,
   "logo_size_ratio": 0.35,
   "primary_font_ratio": 0.18,
@@ -11,7 +10,6 @@
     {
       "type": "text",
       "value": "{Author}",
-      "font_size": 14,
       "font_size_ratio": 0.18,
       "weight": "normal",
       "color": "#FFFFFF"

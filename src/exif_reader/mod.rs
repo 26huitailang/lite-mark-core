@@ -1,8 +1,8 @@
+use exif::{In, Reader, Tag, Value};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::BufReader;
-use exif::{In, Reader, Tag, Value};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExifData {
@@ -197,25 +197,33 @@ fn extract_focal_length(exif: &exif::Exif) -> Option<f64> {
 /// 提取相机型号
 fn extract_camera_model(exif: &exif::Exif) -> Option<String> {
     let field = exif.get_field(Tag::Model, In::PRIMARY)?;
-    Some(field.display_value().to_string())
+    // Use display_value but remove surrounding quotes if present
+    let value = field.display_value().to_string();
+    Some(value.trim_matches('"').to_string())
 }
 
 /// 提取镜头型号
 fn extract_lens_model(exif: &exif::Exif) -> Option<String> {
     let field = exif.get_field(Tag::LensModel, In::PRIMARY)?;
-    Some(field.display_value().to_string())
+    // Use display_value but remove surrounding quotes if present
+    let value = field.display_value().to_string();
+    Some(value.trim_matches('"').to_string())
 }
 
 /// 提取拍摄时间
 fn extract_date_time(exif: &exif::Exif) -> Option<String> {
     let field = exif.get_field(Tag::DateTimeOriginal, In::PRIMARY)?;
-    Some(field.display_value().to_string())
+    // Use display_value but remove surrounding quotes if present
+    let value = field.display_value().to_string();
+    Some(value.trim_matches('"').to_string())
 }
 
 /// 提取作者/摄影师
 fn extract_author(exif: &exif::Exif) -> Option<String> {
     let field = exif.get_field(Tag::Artist, In::PRIMARY)?;
-    Some(field.display_value().to_string())
+    // Use display_value but remove surrounding quotes if present
+    let value = field.display_value().to_string();
+    Some(value.trim_matches('"').to_string())
 }
 
 #[cfg(test)]

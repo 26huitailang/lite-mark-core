@@ -1,7 +1,6 @@
 {
   "name": "Modern",
   "anchor": "top-right",
-  "padding": 20,
   "frame_height_ratio": 0.10,
   "logo_size_ratio": 0.35,
   "primary_font_ratio": 0.20,
@@ -11,7 +10,6 @@
     {
       "type": "text",
       "value": "{Camera} • {Lens}",
-      "font_size": 16,
       "font_size_ratio": 0.20,
       "weight": "bold",
       "color": "#FFFFFF"
@@ -19,7 +17,6 @@
     {
       "type": "text",
       "value": "{Focal} • {Aperture} • {Shutter} • ISO {ISO}",
-      "font_size": 12,
       "font_size_ratio": 0.14,
       "weight": "normal",
       "color": "#CCCCCC"

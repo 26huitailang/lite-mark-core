@@ -1,7 +1,6 @@
 {
     "name": "ClassicParam",
     "anchor": "bottom-left",
-    "padding": 24,
     "frame_height_ratio": 0.10,
     "logo_size_ratio": 0.35,
     "primary_font_ratio": 0.20,
@@ -11,7 +10,6 @@
         {
             "type": "text",
             "value": "{Author}",
-            "font_size": 20,
             "font_size_ratio": 0.20,
             "weight": "bold",
             "color": "#FFFFFF"
@@ -19,7 +17,6 @@
         {
             "type": "text",
             "value": "{Aperture} | ISO {ISO} | {Shutter}",
-            "font_size": 14,
             "font_size_ratio": 0.14,
             "weight": "normal",
             "color": "#FFFFFF"
