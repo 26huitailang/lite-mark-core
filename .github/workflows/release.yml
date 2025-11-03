@@ -1,76 +1,262 @@
-name: Release
+name: Release Build
 
+# 触发机制
 on:
-    push:
-        tags:
-            - "v*"
-    workflow_dispatch:
+  # Tag 推送触发
+  push:
+    tags:
+      - "v*.*.*"
+
+  # PR 验证触发
+  pull_request:
+    branches:
+      - main
+      - master
+
+  # 手动触发
+  workflow_dispatch:
+
+# 权限配置
+permissions:
+  contents: write
+
+# 环境变量
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
 
 jobs:
-    build:
-        runs-on: ${{ matrix.os }}
-        strategy:
-            matrix:
-                os: [ubuntu-latest, windows-latest, macos-latest]
-                include:
-                    - os: ubuntu-latest
-                      target: x86_64-unknown-linux-gnu
-                    - os: windows-latest
-                      target: x86_64-pc-windows-msvc
-                    - os: macos-latest
-                      target: x86_64-apple-darwin
+  # 多平台构建任务
+  build:
+    name: Build for ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
 
-        steps:
-            - uses: actions/checkout@v4
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # macOS Intel
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            artifact_name: litemark
+            asset_name: litemark-macos-x86_64
 
-            - name: Install Rust
-              uses: actions-rs/toolchain@v1
-              with:
-                  toolchain: stable
-                  override: true
+          # macOS Apple Silicon
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            artifact_name: litemark
+            asset_name: litemark-macos-aarch64
 
-            - name: Cache cargo registry
-              uses: actions/cache@v3
-              with:
-                  path: ~/.cargo/registry
-                  key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          # Linux GNU
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            artifact_name: litemark
+            asset_name: litemark-linux-x86_64
 
-            - name: Cache cargo index
-              uses: actions/cache@v3
-              with:
-                  path: ~/.cargo/git
-                  key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
+          # Linux musl (静态链接)
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+            artifact_name: litemark
+            asset_name: litemark-linux-musl-x86_64
 
-            - name: Cache cargo build
-              uses: actions/cache@v3
-              with:
-                  path: target
-                  key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
+          # Windows
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            artifact_name: litemark.exe
+            asset_name: litemark-windows-x86_64.exe
 
-            - name: Build
-              run: cargo build --release
+    steps:
+      # 阶段一：环境准备
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-            - name: Test
-              run: cargo test
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
 
-            - name: Create release archive
-              shell: bash
-              run: |
-                  if [[ "${{ runner.os }}" == "Windows" ]]; then
-                    cp target/release/litemark.exe litemark.exe
-                    7z a litemark-${{ github.ref_name }}-windows-x64.zip litemark.exe
-                  elif [[ "${{ runner.os }}" == "macOS" ]]; then
-                    cp target/release/litemark litemark
-                    tar -czf litemark-${{ github.ref_name }}-macos-x64.tar.gz litemark
-                  else
-                    cp target/release/litemark litemark
-                    tar -czf litemark-${{ github.ref_name }}-linux-x64.tar.gz litemark
-                  fi
+      # Linux musl 特殊依赖
+      - name: Install musl tools (Linux musl only)
+        if: matrix.target == 'x86_64-unknown-linux-musl'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y musl-tools
 
-            - name: Upload artifacts
-              uses: actions/upload-artifact@v3
-              with:
-                  name: litemark-${{ github.ref_name }}-${{ runner.os }}
-                  path: |
-                      litemark-${{ github.ref_name }}-*.zip
-                      litemark-${{ github.ref_name }}-*.tar.gz
+      # 配置依赖缓存
+      - name: Cache cargo registry
+        uses: actions/cache@v3
+        with:
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-registry-
+
+      - name: Cache cargo index
+        uses: actions/cache@v3
+        with:
+          path: ~/.cargo/git
+          key: ${{ runner.os }}-cargo-git-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-git-
+
+      - name: Cache cargo build
+        uses: actions/cache@v3
+        with:
+          path: target
+          key: ${{ runner.os }}-${{ matrix.target }}-cargo-build-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.target }}-cargo-build-
+
+      # 阶段二：代码编译
+      - name: Build release binary
+        run: cargo build --release --target ${{ matrix.target }} --locked
+
+      # 阶段三：产物打包
+      - name: Strip binary (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: |
+          strip target/${{ matrix.target }}/release/${{ matrix.artifact_name }}
+
+      - name: Prepare binary
+        shell: bash
+        run: |
+          cd target/${{ matrix.target }}/release
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            cp ${{ matrix.artifact_name }} ../../../${{ matrix.asset_name }}
+          else
+            cp ${{ matrix.artifact_name }} ../../../${{ matrix.asset_name }}
+            chmod +x ../../../${{ matrix.asset_name }}
+          fi
+
+      - name: Generate checksum
+        shell: bash
+        run: |
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            certutil -hashfile ${{ matrix.asset_name }} SHA256 > ${{ matrix.asset_name }}.sha256
+          else
+            shasum -a 256 ${{ matrix.asset_name }} > ${{ matrix.asset_name }}.sha256
+          fi
+
+      # 上传构建产物
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.asset_name }}
+          path: |
+            ${{ matrix.asset_name }}
+            ${{ matrix.asset_name }}.sha256
+          if-no-files-found: error
+
+  # 发布管理任务
+  release:
+    name: Create GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 下载所有构建产物
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      # 整理产物文件
+      - name: Prepare release assets
+        run: |
+          mkdir -p release
+          find artifacts -type f -exec cp {} release/ \;
+          cd release
+
+          # 生成统一的校验和文件
+          echo "# SHA256 Checksums" > SHA256SUMS.txt
+          echo "" >> SHA256SUMS.txt
+          for file in litemark-*; do
+            if [[ ! "$file" =~ \.sha256$ ]]; then
+              if [ -f "${file}" ]; then
+                shasum -a 256 "$file" >> SHA256SUMS.txt
+              fi
+            fi
+          done
+
+          echo "Release assets prepared:"
+          ls -lh
+
+      # 提取版本号和生成 Release Notes
+      - name: Generate release notes
+        id: release_info
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+          cat > release_notes.md << 'EOF'
+          # LiteMark ${{ github.ref_name }}
+
+          ## 📦 下载说明
+
+          请根据您的操作系统下载对应的二进制文件：
+
+          ### macOS
+          - **Intel 芯片**: `litemark-macos-x86_64`
+          - **Apple Silicon (M1/M2/M3)**: `litemark-macos-aarch64`
+
+          下载后需要添加执行权限：
+          ```bash
+          chmod +x litemark-macos-*
+          sudo mv litemark-macos-* /usr/local/bin/litemark
+          ```
+
+          ### Linux
+          - **标准版本 (glibc)**: `litemark-linux-x86_64`
+          - **静态链接版本 (musl)**: `litemark-linux-musl-x86_64` - 推荐用于容器或老旧系统
+
+          下载后需要添加执行权限：
+          ```bash
+          chmod +x litemark-linux-*
+          sudo mv litemark-linux-* /usr/local/bin/litemark
+          ```
+
+          ### Windows
+          - **Windows 64位**: `litemark-windows-x86_64.exe`
+
+          下载后可直接运行，或将其添加到系统 PATH。
+
+          ## 🔐 校验和验证
+
+          为确保下载文件的完整性，请使用 `SHA256SUMS.txt` 验证：
+
+          **macOS/Linux:**
+          ```bash
+          sha256sum -c SHA256SUMS.txt
+          ```
+
+          **Windows (PowerShell):**
+          ```powershell
+          Get-FileHash litemark-windows-x86_64.exe -Algorithm SHA256
+          ```
+
+          ## 📋 更新日志
+
+          详细变更请查看 [CHANGELOG.md](https://github.com/26huitailang/lite-mark-core/blob/main/CHANGELOG_v0.2.0.md)
+
+          ## 🐛 问题反馈
+
+          如遇到问题，请在 [Issues](https://github.com/26huitailang/lite-mark-core/issues) 页面反馈。
+          EOF
+
+          cat release_notes.md
+
+      # 创建 GitHub Release
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: release/*
+          body_path: release_notes.md
+          draft: false
+          prerelease: false
+          fail_on_unmatched_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
