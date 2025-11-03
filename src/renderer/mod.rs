@@ -9,11 +9,11 @@ fn parse_color(color_str: &str) -> Result<Rgba<u8>, Box<dyn std::error::Error>> 
     if color_str.len() != 6 {
         return Err("Invalid color format".into());
     }
-    
+
     let r = u8::from_str_radix(&color_str[0..2], 16)?;
     let g = u8::from_str_radix(&color_str[2..4], 16)?;
     let b = u8::from_str_radix(&color_str[4..6], 16)?;
-    
+
     Ok(Rgba([r, g, b, 255]))
 }
 
@@ -84,10 +84,10 @@ impl WatermarkRenderer {
 
         // Calculate frame dimensions based on image short edge
         let short_edge = original_width.min(original_height) as f32;
-        
+
         // Validate and clamp frame_height_ratio (5% to 20%)
         let frame_height_ratio = template.frame_height_ratio.clamp(0.05, 0.20);
-        
+
         // Calculate frame height with min/max bounds
         let calculated_frame_height = (short_edge * frame_height_ratio) as u32;
         let bottom_frame_height = calculated_frame_height.clamp(80, 800); // Min 80px, Max 800px
@@ -176,7 +176,7 @@ impl WatermarkRenderer {
                 }
                 ItemType::Text => {
                     let substituted_text = self.substitute_text(&item.value, variables);
-                    
+
                     // Determine font size: use ratio if set, otherwise fallback to fixed size
                     let font_size = if item.font_size_ratio > 0.0 {
                         (frame_height_f32 * item.font_size_ratio) as f32
@@ -187,10 +187,10 @@ impl WatermarkRenderer {
                         // Other text items use secondary font ratio
                         frame_height_f32 * template.secondary_font_ratio
                     };
-                    
+
                     // Clamp font size to reasonable bounds
                     let font_size = font_size.max(10.0).min(100.0);
-                    
+
                     text_items.push((substituted_text, font_size, item.color.clone()));
                 }
             }
@@ -204,8 +204,8 @@ impl WatermarkRenderer {
                 logo_path,
                 center_x as i32,
                 logo_y as i32,
-                logo_size,
-                logo_size,
+                logo_size as i32,
+                logo_size as i32,
             )?;
         }
 
