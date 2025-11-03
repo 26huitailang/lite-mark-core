@@ -1,13 +1,18 @@
-Template 'Modern':
 {
   "name": "Modern",
   "anchor": "top-right",
   "padding": 20,
+  "frame_height_ratio": 0.10,
+  "logo_size_ratio": 0.35,
+  "primary_font_ratio": 0.20,
+  "secondary_font_ratio": 0.14,
+  "padding_ratio": 0.10,
   "items": [
     {
       "type": "text",
       "value": "{Camera} • {Lens}",
       "font_size": 16,
+      "font_size_ratio": 0.20,
       "weight": "bold",
       "color": "#FFFFFF"
     },
@@ -15,6 +20,7 @@ Template 'Modern':
       "type": "text",
       "value": "{Focal} • {Aperture} • {Shutter} • ISO {ISO}",
       "font_size": 12,
+      "font_size_ratio": 0.14,
       "weight": "normal",
       "color": "#CCCCCC"
     }

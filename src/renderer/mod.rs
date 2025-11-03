@@ -3,6 +3,20 @@ use image::{DynamicImage, Rgba, RgbaImage};
 use rusttype::{point, Font, Scale};
 use std::collections::HashMap;
 
+/// Parse color string (e.g., "#FFFFFF" or "#000000") to Rgba
+fn parse_color(color_str: &str) -> Result<Rgba<u8>, Box<dyn std::error::Error>> {
+    let color_str = color_str.trim_start_matches('#');
+    if color_str.len() != 6 {
+        return Err("Invalid color format".into());
+    }
+
+    let r = u8::from_str_radix(&color_str[0..2], 16)?;
+    let g = u8::from_str_radix(&color_str[2..4], 16)?;
+    let b = u8::from_str_radix(&color_str[4..6], 16)?;
+
+    Ok(Rgba([r, g, b, 255]))
+}
+
 pub struct WatermarkRenderer {
     font: Font<'static>,
 }
@@ -68,8 +82,15 @@ impl WatermarkRenderer {
         let original_width = image.width();
         let original_height = image.height();
 
-        // Create frame: add bottom border for parameters and logo
-        let bottom_frame_height = 100; // Height of the bottom frame area
+        // Calculate frame dimensions based on image short edge
+        let short_edge = original_width.min(original_height) as f32;
+
+        // Validate and clamp frame_height_ratio (5% to 20%)
+        let frame_height_ratio = template.frame_height_ratio.clamp(0.05, 0.20);
+
+        // Calculate frame height with min/max bounds
+        let calculated_frame_height = (short_edge * frame_height_ratio) as u32;
+        let bottom_frame_height = calculated_frame_height.clamp(80, 800); // Min 80px, Max 800px
 
         // Create new canvas with frame
         let new_width = original_width;
@@ -140,53 +161,87 @@ impl WatermarkRenderer {
     ) -> Result<(), Box<dyn std::error::Error>> {
         let center_x = width / 2;
         let mut logo_path: Option<String> = None;
-        let mut text_items: Vec<&str> = Vec::new();
+        let mut text_items: Vec<(String, f32, Option<String>)> = Vec::new();
+
+        // Calculate dynamic sizes based on frame height
+        let frame_height_f32 = height as f32;
+        let logo_size = (frame_height_f32 * template.logo_size_ratio) as u32;
+        let logo_size = logo_size.max(20).min(200); // Clamp between 20-200px
 
         // Separate logo and text items
-        for item in &template.items {
+        for (i, item) in template.items.iter().enumerate() {
             match item.item_type {
                 ItemType::Logo => {
                     logo_path = Some(item.value.clone());
                 }
                 ItemType::Text => {
-                    text_items.push(&item.value);
+                    let substituted_text = self.substitute_text(&item.value, variables);
+
+                    // Determine font size: use ratio if set, otherwise fallback to fixed size
+                    let font_size = if item.font_size_ratio > 0.0 {
+                        (frame_height_f32 * item.font_size_ratio) as f32
+                    } else if i == 0 {
+                        // First text item uses primary font ratio
+                        frame_height_f32 * template.primary_font_ratio
+                    } else {
+                        // Other text items use secondary font ratio
+                        frame_height_f32 * template.secondary_font_ratio
+                    };
+
+                    // Clamp font size to reasonable bounds
+                    let font_size = font_size.max(10.0).min(100.0);
+
+                    text_items.push((substituted_text, font_size, item.color.clone()));
                 }
             }
         }
 
         // Render logo in center of bottom frame
         if let Some(ref logo_path) = logo_path {
-            let logo_y = frame_y + height / 2 - 15; // Center vertically in frame
-            self.render_logo(image, logo_path, center_x as i32, logo_y as i32, 30, 30)?;
+            let logo_y = frame_y + height / 2 - logo_size / 2;
+            self.render_logo(
+                image,
+                logo_path,
+                center_x as i32,
+                logo_y as i32,
+                logo_size as i32,
+                logo_size as i32,
+            )?;
         }
+
+        // Calculate padding based on frame height
+        let padding = (frame_height_f32 * template.padding_ratio) as u32;
+        let padding = padding.max(5).min(50); // Clamp between 5-50px
 
         // Render text parameters below logo
         let text_start_y = if logo_path.is_some() {
-            frame_y + height / 2 + 20 // Below logo
+            frame_y + height / 2 + logo_size / 2 + padding
         } else {
-            frame_y + height / 2 - 10 // Center if no logo
+            frame_y + padding
         };
 
         let mut current_y = text_start_y;
-        for (i, text) in text_items.iter().enumerate() {
-            let substituted_text = self.substitute_text(text, variables);
-            let font_size = if i == 0 { 20 } else { 16 }; // Larger font sizes
-            let color = Rgba([0, 0, 0, 255]); // Black text
+        for (text, font_size, color_opt) in text_items.iter() {
+            let color = if let Some(color_str) = color_opt {
+                parse_color(color_str).unwrap_or(Rgba([0, 0, 0, 255]))
+            } else {
+                Rgba([0, 0, 0, 255])
+            };
 
             // Better text centering: estimate text width based on font metrics
-            let char_count = substituted_text.len();
-            let estimated_width = (char_count as f32 * font_size as f32 * 0.6) as i32; // Rough estimate
+            let char_count = text.len();
+            let estimated_width = (char_count as f32 * font_size * 0.6) as i32;
             let text_x = center_x as i32 - (estimated_width / 2);
 
             self.render_text_simple(
                 image,
-                &substituted_text,
+                text,
                 text_x,
                 current_y as i32,
-                font_size,
+                *font_size as u32,
                 color,
             );
-            current_y += font_size + 10;
+            current_y += *font_size as u32 + padding / 2;
         }
 
         Ok(())
