@@ -354,8 +354,8 @@ impl WatermarkRenderer {
         // Use rusttype for proper font rendering
         let scale = Scale::uniform(font_size as f32);
         let v_metrics = self.font.v_metrics(scale);
-        // Position text correctly - y is the top of the text area
-        let baseline_y = y as f32 - v_metrics.ascent;
+        // Position text correctly - y is the baseline position
+        let baseline_y = y as f32 + v_metrics.ascent;
         let offset = point(x as f32, baseline_y);
 
         // Layout and render glyphs
