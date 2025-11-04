@@ -131,6 +131,15 @@ fn process_single_image(
     let exif_data = litemark::exif_reader::extract_exif_data(input_path)?;
     println!("Extracted EXIF data: {:?}", exif_data);
 
+    // Check for missing fields and warn user
+    let missing_fields = exif_data.get_missing_fields();
+    if !missing_fields.is_empty() {
+        println!(
+            "⚠️  Warning: Missing EXIF fields (will be skipped in watermark): {}",
+            missing_fields.join(", ")
+        );
+    }
+
     // Load template
     let template = load_template(template_name)?;
     println!("Using template: {}", template.name);
@@ -227,6 +236,12 @@ fn process_single_image_in_batch(
 
     // Extract EXIF data
     let exif_data = litemark::exif_reader::extract_exif_data(input_path)?;
+
+    // Check for missing fields and warn user
+    let missing_fields = exif_data.get_missing_fields();
+    if !missing_fields.is_empty() {
+        eprintln!("  ⚠️  Missing fields: {}", missing_fields.join(", "));
+    }
 
     // Prepare variables
     let mut variables = exif_data.to_variables();

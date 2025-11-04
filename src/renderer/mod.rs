@@ -184,6 +184,11 @@ impl WatermarkRenderer {
                 ItemType::Text => {
                     let substituted_text = self.substitute_text(&item.value, variables);
 
+                    // Skip this item if it still contains unreplaced placeholders
+                    if substituted_text.contains('{') && substituted_text.contains('}') {
+                        continue;
+                    }
+
                     // Determine font size: use ratio if set, otherwise fallback to fixed size
                     let font_size = if item.font_size_ratio > 0.0 {
                         (frame_height_f32 * item.font_size_ratio) as f32

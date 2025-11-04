@@ -41,60 +41,72 @@ impl ExifData {
     pub fn to_variables(&self) -> HashMap<String, String> {
         let mut vars = HashMap::new();
 
-        // Always insert all fields, use empty string or default for missing values
-        vars.insert(
-            "ISO".to_string(),
-            self.iso
-                .map(|v| v.to_string())
-                .unwrap_or_else(|| "--".to_string()),
-        );
+        // Only insert fields that have values, skip missing ones
+        if let Some(iso) = self.iso {
+            vars.insert("ISO".to_string(), iso.to_string());
+        }
 
-        vars.insert(
-            "Aperture".to_string(),
-            self.aperture
-                .map(|v| format!("f/{:.1}", v))
-                .unwrap_or_else(|| "f/--".to_string()),
-        );
+        if let Some(aperture) = self.aperture {
+            vars.insert("Aperture".to_string(), format!("f/{:.1}", aperture));
+        }
 
-        vars.insert(
-            "Shutter".to_string(),
-            self.shutter_speed
-                .clone()
-                .unwrap_or_else(|| "--".to_string()),
-        );
+        if let Some(ref shutter) = self.shutter_speed {
+            vars.insert("Shutter".to_string(), shutter.clone());
+        }
 
-        vars.insert(
-            "Focal".to_string(),
-            self.focal_length
-                .map(|v| format!("{:.0}mm", v))
-                .unwrap_or_else(|| "--mm".to_string()),
-        );
+        if let Some(focal) = self.focal_length {
+            vars.insert("Focal".to_string(), format!("{:.0}mm", focal));
+        }
 
-        vars.insert(
-            "Camera".to_string(),
-            self.camera_model
-                .clone()
-                .unwrap_or_else(|| "Unknown Camera".to_string()),
-        );
+        if let Some(ref camera) = self.camera_model {
+            vars.insert("Camera".to_string(), camera.clone());
+        }
 
-        vars.insert(
-            "Lens".to_string(),
-            self.lens_model
-                .clone()
-                .unwrap_or_else(|| "Unknown Lens".to_string()),
-        );
+        if let Some(ref lens) = self.lens_model {
+            vars.insert("Lens".to_string(), lens.clone());
+        }
 
-        vars.insert(
-            "DateTime".to_string(),
-            self.date_time.clone().unwrap_or_else(|| "--".to_string()),
-        );
+        if let Some(ref datetime) = self.date_time {
+            vars.insert("DateTime".to_string(), datetime.clone());
+        }
 
-        vars.insert(
-            "Author".to_string(),
-            self.author.clone().unwrap_or_else(|| "Unknown".to_string()),
-        );
+        if let Some(ref author) = self.author {
+            vars.insert("Author".to_string(), author.clone());
+        }
 
         vars
+    }
+
+    /// 检查缺失的字段并返回列表
+    pub fn get_missing_fields(&self) -> Vec<String> {
+        let mut missing = Vec::new();
+
+        if self.iso.is_none() {
+            missing.push("ISO".to_string());
+        }
+        if self.aperture.is_none() {
+            missing.push("Aperture".to_string());
+        }
+        if self.shutter_speed.is_none() {
+            missing.push("Shutter".to_string());
+        }
+        if self.focal_length.is_none() {
+            missing.push("Focal".to_string());
+        }
+        if self.camera_model.is_none() {
+            missing.push("Camera".to_string());
+        }
+        if self.lens_model.is_none() {
+            missing.push("Lens".to_string());
+        }
+        if self.date_time.is_none() {
+            missing.push("DateTime".to_string());
+        }
+        if self.author.is_none() {
+            missing.push("Author".to_string());
+        }
+
+        missing
     }
 }
 
