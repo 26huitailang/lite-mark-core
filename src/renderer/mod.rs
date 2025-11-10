@@ -117,7 +117,8 @@ impl WatermarkRenderer {
         // Render logo and parameters in bottom frame
         self.render_frame_content(
             &mut frame_image,
-            &substituted_template,
+            template,              // Pass original template for classification
+            &substituted_template, // Pass substituted template for rendering
             variables,
             frame_y,
             new_width,
@@ -155,7 +156,8 @@ impl WatermarkRenderer {
     fn render_frame_content(
         &self,
         image: &mut RgbaImage,
-        template: &Template,
+        original_template: &Template, // Original template for classification
+        substituted_template: &Template, // Substituted template for rendering
         variables: &HashMap<String, String>,
         frame_y: u32,
         width: u32,
@@ -163,27 +165,38 @@ impl WatermarkRenderer {
         logo_override: Option<&str>,
     ) -> Result<(), Box<dyn std::error::Error>> {
         // Determine positioning based on anchor (for future use)
-        let _anchor_for_future = match template.anchor {
+        let _anchor_for_future = match substituted_template.anchor {
             crate::layout::Anchor::TopLeft | crate::layout::Anchor::BottomLeft => 0,
             crate::layout::Anchor::TopRight | crate::layout::Anchor::BottomRight => width,
             crate::layout::Anchor::Center => width / 2,
         };
 
-        let center_x = width / 2;
         let mut logo_path: Option<String> = None;
-        let mut text_items: Vec<(String, f32, Option<String>)> = Vec::new();
 
         // Calculate dynamic sizes based on frame height
         let frame_height_f32 = height as f32;
 
-        // Separate logo and text items
-        for (i, item) in template.items.iter().enumerate() {
-            match item.item_type {
+        // Separate logo and text items, and classify text into left/right columns
+        let mut left_column_items: Vec<(String, f32, Option<String>)> = Vec::new();
+        let mut right_column_items: Vec<(String, f32, Option<String>)> = Vec::new();
+
+        // Priority variables for left column
+        let left_priority = ["Author", "Camera", "DateTime"];
+
+        // Use original template items for classification, substituted items for display
+        for (i, (orig_item, subst_item)) in original_template
+            .items
+            .iter()
+            .zip(substituted_template.items.iter())
+            .enumerate()
+        {
+            match orig_item.item_type {
                 ItemType::Logo => {
-                    logo_path = Some(item.value.clone());
+                    logo_path = Some(subst_item.value.clone());
                 }
                 ItemType::Text => {
-                    let substituted_text = self.substitute_text(&item.value, variables);
+                    // Use substituted text for display
+                    let substituted_text = &subst_item.value;
 
                     // Skip this item if it still contains unreplaced placeholders
                     if substituted_text.contains('{') && substituted_text.contains('}') {
@@ -191,20 +204,39 @@ impl WatermarkRenderer {
                     }
 
                     // Determine font size: use ratio if set, otherwise fallback to fixed size
-                    let font_size = if item.font_size_ratio > 0.0 {
-                        (frame_height_f32 * item.font_size_ratio) as f32
+                    let font_size = if orig_item.font_size_ratio > 0.0 {
+                        (frame_height_f32 * orig_item.font_size_ratio) as f32
                     } else if i == 0 {
                         // First text item uses primary font ratio
-                        frame_height_f32 * template.primary_font_ratio
+                        frame_height_f32 * original_template.primary_font_ratio
                     } else {
                         // Other text items use secondary font ratio
-                        frame_height_f32 * template.secondary_font_ratio
+                        frame_height_f32 * original_template.secondary_font_ratio
                     };
 
                     // Clamp font size to reasonable bounds
                     let font_size = font_size.max(10.0).min(100.0);
 
-                    text_items.push((substituted_text, font_size, item.color.clone()));
+                    // Check ORIGINAL template value for classification (before substitution)
+                    // Left column: items that are ONLY Author, Camera, or DateTime (standalone)
+                    let is_left_column = left_priority.iter().any(|&var| {
+                        let placeholder = format!("{{{}}}", var);
+                        orig_item.value.trim() == placeholder
+                    });
+
+                    if is_left_column {
+                        left_column_items.push((
+                            substituted_text.clone(),
+                            font_size,
+                            orig_item.color.clone(),
+                        ));
+                    } else {
+                        right_column_items.push((
+                            substituted_text.clone(),
+                            font_size,
+                            orig_item.color.clone(),
+                        ));
+                    }
                 }
             }
         }
@@ -216,82 +248,88 @@ impl WatermarkRenderer {
         };
 
         // Calculate padding based on frame height
-        let padding = (frame_height_f32 * template.padding_ratio) as u32;
+        let padding = (frame_height_f32 * original_template.padding_ratio) as u32;
         let padding = padding.max(5).min(50); // Clamp between 5-50px
 
-        // Render logo on the left side of the frame (1/3 of frame height)
-        if let Some(ref logo_path) = final_logo_path {
-            if !logo_path.is_empty() {
-                // Target height is 1/3 of frame height
-                let target_logo_height = (height as f32 / 3.0) as u32;
+        // Layout parameters
+        let column1_x = padding;
+        let logo_height = (height as f32 / 3.0) as u32;
+        let estimated_logo_width = (logo_height as f32 * 2.5) as u32;
 
-                // Calculate actual logo width to properly position it
-                // We'll pass the left edge position, render_logo will calculate the center
-                let logo_left_edge = padding * 3;
+        // Right-aligned columns: Logo, Separator, EXIF info
+        // Column 4: Right column ends at right edge - padding
+        let column4_x_end = width - padding;
+        // Estimate column 4 width (approximate, based on typical EXIF text length)
+        let estimated_column4_width = (width / 3) as u32;
+        let column4_x = column4_x_end - estimated_column4_width;
 
-                // Estimate logo width based on height and aspect ratio
-                let estimated_logo_width = (target_logo_height as f32 * 2.5) as u32;
-                let logo_center_x = logo_left_edge + estimated_logo_width / 2;
-                let logo_y = frame_y + height / 2;
+        // Column 3: Separator line position (before column 4 with spacing)
+        let separator_x = column4_x - padding * 3;
 
-                self.render_logo(
-                    image,
-                    logo_path,
-                    logo_center_x as i32,
-                    logo_y as i32,
-                    target_logo_height,
-                )?;
-            }
-        }
+        // Column 2: Logo position (before separator with spacing)
+        let logo_center_x = separator_x - padding * 3 - estimated_logo_width / 2;
 
-        // Render text parameters on the right side of logo
-        let text_start_y = frame_y + padding * 2;
-        let text_start_x = if final_logo_path.is_some() {
-            // Logo occupies left side, text starts after logo with spacing
-            let logo_height = (height as f32 / 3.0) as u32;
-            // Estimate logo width (assuming aspect ratio around 2.5 for text logo like "Peter")
-            let estimated_logo_width = (logo_height as f32 * 2.5) as u32;
-            padding * 3 + estimated_logo_width + padding * 2
-        } else {
-            padding
-        };
-
-        let mut current_y = text_start_y;
-        for (text, font_size, color_opt) in text_items.iter() {
+        // Render Column 1: Author, Camera, Date (left side)
+        let mut current_y = frame_y + padding * 2;
+        for (text, font_size, color_opt) in left_column_items.iter() {
             let color = if let Some(color_str) = color_opt {
                 parse_color(color_str).unwrap_or(Rgba([0, 0, 0, 255]))
             } else {
                 Rgba([0, 0, 0, 255])
             };
 
-            // Calculate text position
-            let text_x = if final_logo_path.is_some() {
-                // Logo on left, text on right side
-                text_start_x as i32
+            self.render_text_simple(
+                image,
+                text,
+                column1_x as i32,
+                current_y as i32,
+                *font_size as u32,
+                color,
+            );
+            current_y += *font_size as u32 + padding / 3;
+        }
+
+        // Render Column 2: Logo (center-left, vertically centered)
+        if let Some(ref logo_path) = final_logo_path {
+            if !logo_path.is_empty() {
+                let logo_y = frame_y + height / 2;
+                self.render_logo(
+                    image,
+                    logo_path,
+                    logo_center_x as i32,
+                    logo_y as i32,
+                    logo_height,
+                )?;
+            }
+        }
+
+        // Render Column 3: Vertical separator line
+        self.render_vertical_line(
+            image,
+            separator_x,
+            frame_y + padding,
+            height - padding * 2,
+            Rgba([200, 200, 200, 255]),
+        );
+
+        // Render Column 4: Other EXIF info (right side)
+        current_y = frame_y + padding * 2;
+        for (text, font_size, color_opt) in right_column_items.iter() {
+            let color = if let Some(color_str) = color_opt {
+                parse_color(color_str).unwrap_or(Rgba([0, 0, 0, 255]))
             } else {
-                // No logo, use template anchor setting
-                let char_count = text.len();
-                let estimated_width = (char_count as f32 * font_size * 0.6) as i32;
-                match template.anchor {
-                    crate::layout::Anchor::TopLeft | crate::layout::Anchor::BottomLeft => {
-                        padding as i32
-                    }
-                    crate::layout::Anchor::TopRight | crate::layout::Anchor::BottomRight => {
-                        (width as i32) - estimated_width - (padding as i32)
-                    }
-                    crate::layout::Anchor::Center => center_x as i32 - (estimated_width / 2),
-                }
+                Rgba([0, 0, 0, 255])
             };
 
             self.render_text_simple(
                 image,
                 text,
-                text_x,
+                column4_x as i32,
                 current_y as i32,
                 *font_size as u32,
                 color,
             );
-            current_y += *font_size as u32 + padding / 2;
+            current_y += *font_size as u32 + padding / 3;
         }
 
         Ok(())
@@ -440,6 +478,26 @@ impl WatermarkRenderer {
                         }
                     }
                 });
+            }
+        }
+    }
+
+    /// Render a vertical separator line
+    fn render_vertical_line(
+        &self,
+        image: &mut RgbaImage,
+        x: u32,
+        y_start: u32,
+        height: u32,
+        color: Rgba<u8>,
+    ) {
+        for y in y_start..(y_start + height) {
+            if x < image.width() && y < image.height() {
+                image.put_pixel(x, y, color);
+                // Draw a 2-pixel wide line for better visibility
+                if x + 1 < image.width() {
+                    image.put_pixel(x + 1, y, color);
+                }
             }
         }
     }

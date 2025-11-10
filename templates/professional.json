@@ -17,7 +17,21 @@
         },
         {
             "type": "text",
-            "value": "{Camera} • {Lens}",
+            "value": "{Camera}",
+            "font_size_ratio": 0.16,
+            "weight": "normal",
+            "color": "#4A4A4A"
+        },
+        {
+            "type": "text",
+            "value": "{DateTime}",
+            "font_size_ratio": 0.14,
+            "weight": "normal",
+            "color": "#6A6A6A"
+        },
+        {
+            "type": "text",
+            "value": "{Lens}",
             "font_size_ratio": 0.16,
             "weight": "normal",
             "color": "#4A4A4A"
