@@ -1,6 +1,10 @@
-技术 + 产品完整路线图 — “轻量摄影参数水印工具” 🚀
+# LiteMark 技术 + 产品路线图 🚀
 
-下面是一份可直接落地、面向你（个人开发者）的完整路线图，包含产品目标、MVP 功能、技术架构、实现细节、里程碑时间表、发布/商业化策略与风险缓解。风格尽量务实：先可验证的最小可行产品（MVP），再逐步做跨平台、体验与变现。
+> **最近更新:** 2025-11-10  
+> **当前版本:** v0.1.0  
+> **下一版本:** v0.2.0 (准备发布中)
+
+本文档为 LiteMark（轻量摄影参数水印工具）的完整路线图，包含产品目标、功能规划、技术架构、里程碑时间表、发布策略与风险缓解。
 
 ⸻
 
@@ -32,28 +36,90 @@
 
 3) 产品分层 — 功能优先级（MVP → v1 → v2）
 
-MVP（核心，已完成）✅
-	•	CLI：读取图片（JPEG/PNG）、读取 EXIF，生成带相框的新图片。
-	•	相框模式：底部相框显示参数和logo（logo居中，参数下方显示）。
-	•	字体渲染：使用 rusttype 实现专业字体渲染，支持中文/英文。
-	•	Logo 支持：自动加载和缩放 logo 图片。
-	•	模板系统：JSON 配置，支持变量替换。
-	•	批量处理（目录遍历）。
-	•	高质量输出（保持原图分辨率）。
-	•	开源 core（MIT）并配置 CI/CD（Linux/macOS/Windows）。
+### MVP（核心功能）✅ **已完成 100%**
 
-v1（iOS 原型 + UX，目标 1–2 个月）
-	•	iOS 原生 App（或轻量 SwiftUI）调用 core。支持单张预览与批量队列。
-	•	支持自定义摄影师签名与 logo 导入。
-	•	模板管理（保存/删除/重命名）。
-	•	一次性买断解锁批量/自定义模板（内购）。
+**完成时间:** Week 1-2 (2025-10)
 
-v2（跨端 + 智能，3–6 个月）
-	•	Web demo（WASM，本地浏览器处理，方便传播）。
-	•	macOS / Windows GUI（Electron 或 native）。
-	•	智能布局：避开人脸（简单方案：提供“避开中心/避开面部”选项，基于 iOS Vision / wasm face detect）。
-	•	扩展模板市场（可导入/分享模板）。
-	•	企业/批量 API（按需）。
+核心功能清单：
+- ✅ CLI 工具：读取图片（JPEG/PNG/TIFF）、提取 EXIF、生成带相框的新图片
+- ✅ **真实 EXIF 提取**：集成 kamadak-exif，支持 ISO、光圈、快门、焦距、相机、镜头、时间、作者
+- ✅ 相框模式：底部相框显示参数和 logo（logo 居中，参数下方显示）
+- ✅ 字体渲染：使用 rusttype 实现专业字体渲染，支持多语言
+  - ✅ 内置 DejaVu Sans（英文）
+  - ✅ 支持 `--font` 参数和 `LITEMARK_FONT` 环境变量（中文字体）
+- ✅ Logo 支持：自动加载和缩放 logo 图片
+  - ✅ 支持 `--logo` CLI 参数
+  - ✅ 支持 `LITEMARK_LOGO` 环境变量
+  - ✅ 优先级策略：CLI > ENV > Template
+- ✅ 模板系统：JSON 配置，支持变量替换 ({ISO}, {Aperture}, {Shutter} 等)
+- ✅ 批量处理：目录遍历，自动处理多张照片
+- ✅ 高质量输出：保持原图分辨率
+- ✅ 开源协议：MIT License
+- ✅ 单元测试：EXIF、布局、渲染模块测试覆盖
+- 🚧 CI/CD：GitHub Actions 配置中
+
+### v0.2.0（完善与发布）🚧 **进行中 60%**
+
+**目标完成时间:** Week 3-4 (2025-11)
+
+优化任务清单：
+- ✅ Logo 路径参数化（CLI 参数 + 环境变量）
+- ✅ 完善 EXIF 提取（真实数据、错误处理、快门格式化）
+- ✅ 文档完善（README、架构文档、使用指南）
+- ✅ 中文字体配置指南
+- 🚧 完善测试覆盖（renderer、layout 模块）
+- 🚧 CI/CD 配置（GitHub Actions）
+  - 🚧 自动化测试工作流
+  - 🚧 跨平台编译（Linux/macOS/Windows）
+  - 🚧 自动发布 Release
+- 🚧 发布准备
+  - 🚧 编写 CHANGELOG.md
+  - 🚧 创建 GitHub Release v0.2.0
+  - 🚧 发布二进制文件
+
+### v1.0（iOS 原型 + UX）📅 **计划中**
+
+**目标完成时间:** 1-2 个月
+
+功能规划：
+- iOS 原生 App（SwiftUI）调用 Rust core
+  - 单张预览与批量队列
+  - 实时预览（小图缩放后渲染）
+- 自定义摄影师签名与 logo 导入
+- 模板管理
+  - 保存/删除/重命名模板
+  - 模板参数调整（颜色、字体大小、位置）
+- 导出分享
+  - 保存到相册
+  - 直接分享到社媒
+- 一次性买断解锁（内购）
+  - 批量处理
+  - 高级模板
+  - 自定义模板
+
+### v2.0（跨平台 + 智能功能）📅 **计划中**
+
+**目标完成时间:** 3-6 个月
+
+功能规划：
+- Web Demo（WASM）
+  - 本地浏览器处理（无上传）
+  - 拖拽上传、实时预览
+  - 方便传播和体验
+- Desktop GUI
+  - macOS / Windows 原生应用
+  - 或基于 Tauri/Electron
+- 智能布局
+  - 避开人脸/主体（基于 iOS Vision / wasm face detect）
+  - 自动选择最佳水印位置
+- 模板市场
+  - 导入/分享自定义模板
+  - 社区模板库
+  - 志愿付费或模板包
+- 企业功能（按需）
+  - 批量 API
+  - 自定义品牌模板
+  - 批量授权
 
 ⸻
 
@@ -224,57 +290,170 @@ iOS UI 功能（MVP）：
 
 17) 里程碑时间线（建议，单人开发可调整）
 
-Week 0 (准备)
-	•	设 repo，确定 license，CI skeleton。
-	•	收集 20 张测试图片（多种分辨率/HEIC/JPEG）。
+## 📅 详细时间线
 
-Week 1–2 (Core MVP) ✅ 已完成
-	•	Rust 项目初始化，EXIF 解析模块、模板引擎、CLI 工具。
-	•	实现相框模式渲染：底部相框 + logo + 参数文字。
-	•	集成 rusttype 字体渲染（支持多语言）。
-	•	批量处理功能。
-	•	单元测试覆盖核心功能。
+### ✅ Week 0 - 准备阶段（已完成）
+- ✅ 创建 GitHub 仓库
+- ✅ 确定 MIT License
+- ✅ 项目初始化
+- ✅ 准备测试图片集
 
-Week 3 (完善 + 发布) ✅ 已完成
-	•	优化字体渲染和文本定位。
-	•	完善模板系统（变量替换）。
-	•	配置 CI/CD（GitHub Actions）。
-	•	完善 README 和文档。
+### ✅ Week 1-2 - Core MVP（已完成 100%）
+**完成时间:** 2025-10
 
-Week 4–6 (iOS 原型）
-	•	Rust -> staticlib 编译 + Swift wrapper。
-	•	iOS App 实现图片选择、模板预览、单张导出、分享。TestFlight 内测。
-	•	在 iOS 中集成内购（一次性解锁）测试。
+- ✅ Rust 项目初始化（Cargo 配置）
+- ✅ EXIF 解析模块
+  - ✅ 集成 kamadak-exif
+  - ✅ 支持 8 个核心字段
+  - ✅ 快门速度自动格式化
+- ✅ 模板引擎（JSON 解析、变量替换）
+- ✅ CLI 工具（clap 框架）
+- ✅ 相框模式渲染
+  - ✅ 底部相框生成
+  - ✅ Logo 居中显示
+  - ✅ 参数文字渲染
+- ✅ rusttype 字体渲染（支持多语言）
+- ✅ 批量处理功能（walkdir）
+- ✅ 单元测试（EXIF、布局、优先级）
 
-Month 2–3 (Web WASM demo + polish)
-	•	wasm-bindgen build + demo page。
-	•	优化字体加载、文件导入导出体验。
+### 🚧 Week 3 - 完善与发布（进行中 60%）
+**目标完成:** 2025-11
 
-Month 3–6 (扩展与市场)
-	•	模板商店与更多模板、优化避脸布局、macOS/Windows GUI（按需）。
-	•	根据用户反馈迭代计费与体验。
+- ✅ Logo 路径参数化
+  - ✅ `--logo` CLI 参数
+  - ✅ `LITEMARK_LOGO` 环境变量
+  - ✅ 优先级策略实现
+- ✅ 优化字体渲染和文本定位
+- ✅ 完善模板系统（变量替换）
+- ✅ 文档完善
+  - ✅ README 更新
+  - ✅ EXIF 提取指南
+  - ✅ 中文字体配置指南
+- 🚧 完善测试覆盖
+- 🚧 配置 CI/CD（GitHub Actions）
+- 🚧 发布 v0.2.0
+
+### 📅 Week 4-6 - iOS 原型（计划中）
+**预计开始:** 2025-11 下旬
+
+- Rust -> staticlib 编译
+  - C ABI 导出
+  - Swift bridging header
+  - XCFramework 打包
+- iOS App 开发（SwiftUI）
+  - 图片选择（PhotoKit）
+  - 模板预览
+  - 单张/批量处理
+  - 导出分享
+- TestFlight 内测
+- 内购集成（一次性解锁）
+
+### 📅 Month 2-3 - Web WASM（计划中）
+**预计开始:** 2025-12
+
+- wasm-bindgen 编译
+- Web UI 开发
+  - 拖拽上传
+  - 实时预览
+  - 本地处理
+- 字体加载优化（subset/woff2）
+- 性能优化（大图处理）
+
+### 📅 Month 3-6 - 扩展与市场（计划中）
+**预计开始:** 2026-01
+
+- 模板商店
+- 更多内置模板
+- 智能布局（避开人脸）
+- macOS/Windows GUI
+- 用户反馈迭代
 
 ⸻
 
-18) 立即可执行的“上手任务清单”（你现在就能开始）
-	1.	创建 GitHub 仓库并初始化 Rust 项目（包含 LICENSE、README）。
-	2.	准备测试图片集（含 HEIC、JPEG 多分辨率）。
-	3.	实现 exif_reader + 简单 CLI（paramark input.jpg -t classic -o out.jpg）。
-	4.	写 2–3 个模板 JSON，做视觉对比截图作为 README。
-	5.	构建第一个 Release 二进制并在微信群/摄影群发出体验邀请。
-	6.	同时开始 iOS 原型分支（Rust -> staticlib 编译脚本）。
+## ✅ 当前进度总结
 
-我可以直接为你生成：
-	•	Rust 项目的 Cargo.toml + CLI skeleton（带 clap），
-	•	模板 JSON 示例（3 套）和渲染伪代码，
-	•	iOS 集成的 modulemap / bridging header 示例，
-如果你想，我立刻把这些代码骨架写出来给你（选择：生成 Rust skeleton / 模板示例 / iOS wrapper 里任意一项即可）。
+### 已完成功能
+- ✅ Core MVP（CLI 工具）
+- ✅ 真实 EXIF 数据提取
+- ✅ 相框模式渲染
+- ✅ 字体渲染系统（rusttype）
+- ✅ Logo 支持（参数化）
+- ✅ 模板系统（JSON 配置）
+- ✅ 批量处理
+- ✅ 单元测试
+- ✅ 文档体系
 
-⸻
+### 当前版本
+- **发布版本:** v0.1.0
+- **开发版本:** v0.2.0-dev（60% 完成）
 
-要我现在直接生成哪一份“立刻可运行的产物”给你？（我可以马上输出）
-	•	A. Rust CLI skeleton（含 EXIF 解析 & 模板示例）
-	•	B. 3 个视觉模板 JSON + 预览示例（PNG mockups）
-	•	C. iOS 集成示例：Rust -> staticlib 编译脚本 + Swift 调用示例
+### 代码统计
+- **语言:** Rust (edition 2021)
+- **依赖库:** 10 个核心依赖
+- **模块:** 5 个（exif_reader, layout, renderer, io, main）
+- **内置模板:** 7 个（classic, modern, minimal, dark, elegant, professional, compact）
+- **测试覆盖:** 良好（EXIF、布局、优先级）
 
-直接说 A / B / C，或 “全部”。我会把相应的代码与说明一并给你。
+### 质量指标
+- ✅ P0 级别 bug: 0 个
+- ✅ 编译错误: 0 个
+- ✅ 文档完整性: 优秀
+- ✅ 单元测试: 良好
+- 🚧 CI/CD: 配置中
+
+## 📋 下一步行动（Week 3 剩余任务）
+
+### 立即执行（本周内）
+
+1. **完善测试覆盖** (2-3 小时)
+   - [ ] renderer 模块测试
+   - [ ] layout 模块更多测试
+   - [ ] 端到端集成测试
+
+2. **CI/CD 配置** (2-3 小时)
+   - [ ] GitHub Actions 工作流
+   - [ ] 跨平台编译（Linux/macOS/Windows）
+   - [ ] 自动发布 Release
+
+3. **发布 v0.2.0** (1-2 小时)
+   - [ ] 编写 CHANGELOG.md
+   - [ ] 创建 GitHub Release
+   - [ ] 发布二进制文件
+   - [ ] 在摄影社区推广
+
+### 中期规划（下个月）
+
+4. **iOS 原型开发**
+   - [ ] Rust -> staticlib 编译脚本
+   - [ ] Swift wrapper 和 bridging header
+   - [ ] SwiftUI 界面开发
+   - [ ] TestFlight 内测
+
+5. **用户反馈收集**
+   - [ ] 在摄影群/论坛发布
+   - [ ] 收集使用反馈
+   - [ ] 迭代优化
+
+## 🎯 成功指标
+
+### 技术指标
+- ✅ CLI 工具可用性: 100%
+- ✅ EXIF 提取准确性: 优秀
+- 🚧 跨平台兼容性: 待测试
+- 🚧 性能（批量处理）: 待优化
+
+### 用户指标（v0.2.0 目标）
+- 📊 GitHub Stars: 目标 50+
+- 📊 首月试用用户: 目标 100+
+- 📊 社区反馈: 收集并迭代
+
+### 商业指标（v1.0 目标）
+- 💰 iOS App 下载: 目标 1000+
+- 💰 付费转化率: 目标 5-10%
+- 💰 定价策略: ¥29-¥69 一次性买断
+
+---
+
+**最后更新:** 2025-11-10  
+**维护者:** @26huitailang  
+**项目仓库:** https://github.com/26huitailang/lite-mark-core
