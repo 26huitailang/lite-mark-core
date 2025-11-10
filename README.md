@@ -15,6 +15,8 @@ A lightweight photo parameter frame tool for photography enthusiasts.
   - ⚠️ Note: Default font (DejaVu Sans) supports English only
   - 💡 For Chinese text, use `--font` parameter or set `LITEMARK_FONT` environment variable
 - 🖼️ **Logo support** - Automatic scaling and positioning
+  - ✅ Customizable via `--logo` parameter or `LITEMARK_LOGO` environment variable
+  - ✅ Priority: CLI > ENV > Template
 - 📱 **Batch processing** - Process entire directories
 - 🔒 **Privacy-first** - All processing happens locally, no cloud upload
 - 🎯 **Simple CLI interface** - Easy to use command-line tool
@@ -107,6 +109,49 @@ litemark add -i photo.jpg -o output.jpg --author "李四"
 
 📚 **See detailed guide:** [Chinese Font Configuration Guide](examples/chinese_font_guide.md)
 
+### Logo Customization
+
+You can specify a custom logo for your watermarks using the `--logo` parameter or `LITEMARK_LOGO` environment variable:
+
+**Using command-line parameter:**
+```bash
+# Specify logo file path
+litemark add -i photo.jpg -o output.jpg --logo my_logo.png
+
+# Use absolute path
+litemark add -i photo.jpg -o output.jpg --logo /path/to/brand_logo.png
+
+# Batch processing with custom logo
+litemark batch -i photos/ -t classic -o output/ --logo company_logo.png
+```
+
+**Using environment variable:**
+```bash
+# Linux/macOS - Temporary
+export LITEMARK_LOGO="/Users/username/logos/my_logo.png"
+litemark add -i photo.jpg -o output.jpg
+
+# Linux/macOS - Permanent (add to ~/.bashrc or ~/.zshrc)
+echo 'export LITEMARK_LOGO="/path/to/default_logo.png"' >> ~/.zshrc
+
+# Windows PowerShell
+$env:LITEMARK_LOGO="C:\logos\my_logo.png"
+litemark add -i photo.jpg -o output.jpg
+```
+
+**Priority order:**
+1. `--logo` CLI parameter (highest priority)
+2. `LITEMARK_LOGO` environment variable
+3. Logo path defined in template
+4. No logo (skip logo rendering)
+
+**Supported logo formats:**
+- PNG (recommended for transparency)
+- JPEG
+- GIF
+- WebP
+- BMP
+
 ## Built-in Templates
 
 1. **ClassicParam** - Bottom frame with centered logo, photographer name, and shooting parameters
@@ -172,7 +217,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [x] CLI tool with frame mode
 - [x] **Real EXIF data extraction** (kamadak-exif integration)
 - [x] Professional font rendering (rusttype)
-- [x] Logo support
+- [x] Logo support with parameterization
 - [x] Template system
 - [x] Batch processing
 - [x] Comprehensive unit tests

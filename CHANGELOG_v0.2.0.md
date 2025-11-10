@@ -49,7 +49,45 @@
 
 ---
 
-### 2. ✅ 字体文件验证
+### 2. ✅ Logo 路径参数化
+
+**问题描述:**
+- Logo 路径硬编码在模板中
+- 用户无法灵活切换不同 Logo
+- 批量处理时无法统一指定 Logo
+
+**解决方案:**
+- 添加 `--logo` CLI 参数支持
+- 支持 `LITEMARK_LOGO` 环境变量
+- 实现优先级策略：CLI > ENV > Template
+- 增强 Logo 文件验证和错误处理
+
+**代码改动:**
+- 文件: `src/main.rs`
+  - 在 `Commands::Add` 和 `Commands::Batch` 中添加 `logo` 字段
+  - 在 `process_single_image()` 中实现 Logo 优先级逻辑
+  - 添加单元测试模块
+- 文件: `src/renderer/mod.rs`
+  - `render_watermark()` 方法添加 `logo_override` 参数
+  - `render_frame_content()` 实现 Logo 路径覆盖逻辑
+  - 增强 `render_logo()` 错误处理和日志输出
+
+**功能特性:**
+- ✅ 命令行参数: `litemark add -i photo.jpg -o output.jpg --logo my_logo.png`
+- ✅ 环境变量: `export LITEMARK_LOGO="/path/to/logo.png"`
+- ✅ 优先级策略: CLI 参数 > 环境变量 > 模板默认值
+- ✅ 错误处理: Logo 不存在时警告但继续处理
+- ✅ 支持格式: PNG, JPEG, GIF, WebP, BMP
+
+**测试覆盖:**
+- ✅ CLI 参数优先级测试
+- ✅ 环境变量生效测试
+- ✅ 无 Logo 场景测试
+- ✅ 优先级策略测试
+
+---
+
+### 3. ✅ 字体文件验证
 
 **问题描述:**
 - 设计文档中提到字体文件可能缺失
@@ -66,7 +104,7 @@
 
 ---
 
-### 3. ✅ 单元测试完善
+### 4. ✅ 单元测试完善
 
 **新增测试:**
 
@@ -77,21 +115,29 @@
 - `test_exif_data_new()` - 测试数据结构初始化
 - `test_exif_data_default()` - 测试默认值
 
+#### Logo 参数化测试
+- `test_cli_logo_overrides_env()` - CLI 参数覆盖环境变量
+- `test_env_logo_when_no_cli()` - 无 CLI 时使用环境变量
+- `test_no_logo_when_all_none()` - 所有来源都为空
+- `test_cli_logo_priority_with_both_set()` - 优先级策略验证
+
 **测试覆盖:**
 - ✅ EXIF 数据提取核心逻辑
 - ✅ 快门速度格式化边界情况
 - ✅ 数据结构初始化
 - ✅ 变量替换功能
+- ✅ Logo 优先级策略
 
 ---
 
-### 4. ✅ 文档更新
+### 5. ✅ 文档更新
 
 #### 更新的文档
 
 **README.md:**
 - ✅ 更新 Features 部分，明确 EXIF 提取能力
 - ✅ 添加中文字体支持说明
+- ✅ 添加 Logo 定制部分，说明 `--logo` 参数和 `LITEMARK_LOGO` 环境变量
 - ✅ 更新 Roadmap，标记已完成项
 - ✅ 添加示例文档链接
 
@@ -201,9 +247,13 @@ cargo run -- batch -i test_images -t classic -o output/
 
 ### P1 - 重要优化（2-3 天）
 
-1. **Logo 路径参数化** (1 小时)
-   - 添加 `--logo` CLI 参数
-   - 支持 `LITEMARK_LOGO` 环境变量
+1. **Logo 路径参数化** ✅ (已完成)
+   - ✅ 添加 `--logo` CLI 参数
+   - ✅ 支持 `LITEMARK_LOGO` 环境变量
+   - ✅ 实现优先级策略（CLI > ENV > Template）
+   - ✅ 增强错误处理和日志
+   - ✅ 添加单元测试
+   - ✅ 更新文档（README.md）
 
 2. **完善测试覆盖** (2-3 小时)
    - 为 renderer 模块添加测试

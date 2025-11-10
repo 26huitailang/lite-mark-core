@@ -76,6 +76,7 @@ impl WatermarkRenderer {
         image: &mut DynamicImage,
         template: &Template,
         variables: &HashMap<String, String>,
+        logo_override: Option<&str>,
     ) -> Result<(), Box<dyn std::error::Error>> {
         let substituted_template = template.substitute_variables(variables);
 
@@ -121,6 +122,7 @@ impl WatermarkRenderer {
             frame_y,
             new_width,
             bottom_frame_height,
+            logo_override,
         )?;
 
         // Convert back to DynamicImage
@@ -158,6 +160,7 @@ impl WatermarkRenderer {
         frame_y: u32,
         width: u32,
         height: u32,
+        logo_override: Option<&str>,
     ) -> Result<(), Box<dyn std::error::Error>> {
         // Determine positioning based on anchor (for future use)
         let _anchor_for_future = match template.anchor {
@@ -172,8 +175,6 @@ impl WatermarkRenderer {
 
         // Calculate dynamic sizes based on frame height
         let frame_height_f32 = height as f32;
-        let logo_size = (frame_height_f32 * template.logo_size_ratio) as u32;
-        let logo_size = logo_size.max(20).min(200); // Clamp between 20-200px
 
         // Separate logo and text items
         for (i, item) in template.items.iter().enumerate() {
@@ -208,28 +209,51 @@ impl WatermarkRenderer {
             }
         }
 
-        // Render logo in center of bottom frame
-        if let Some(ref logo_path) = logo_path {
-            let logo_y = frame_y + height / 2 - logo_size / 2;
-            self.render_logo(
-                image,
-                logo_path,
-                center_x as i32,
-                logo_y as i32,
-                logo_size as i32,
-                logo_size as i32,
-            )?;
-        }
+        // Determine final logo path: override > template
+        let final_logo_path = match logo_override {
+            Some(override_path) if !override_path.is_empty() => Some(override_path.to_string()),
+            _ => logo_path,
+        };
 
         // Calculate padding based on frame height
         let padding = (frame_height_f32 * template.padding_ratio) as u32;
         let padding = padding.max(5).min(50); // Clamp between 5-50px
 
-        // Render text parameters below logo
-        let text_start_y = if logo_path.is_some() {
-            frame_y + height / 2 + logo_size / 2 + padding
+        // Render logo on the left side of the frame (1/3 of frame height)
+        if let Some(ref logo_path) = final_logo_path {
+            if !logo_path.is_empty() {
+                // Target height is 1/3 of frame height
+                let target_logo_height = (height as f32 / 3.0) as u32;
+
+                // Calculate actual logo width to properly position it
+                // We'll pass the left edge position, render_logo will calculate the center
+                let logo_left_edge = padding * 3;
+
+                // Estimate logo width based on height and aspect ratio
+                let estimated_logo_width = (target_logo_height as f32 * 2.5) as u32;
+                let logo_center_x = logo_left_edge + estimated_logo_width / 2;
+                let logo_y = frame_y + height / 2;
+
+                self.render_logo(
+                    image,
+                    logo_path,
+                    logo_center_x as i32,
+                    logo_y as i32,
+                    target_logo_height,
+                )?;
+            }
+        }
+
+        // Render text parameters on the right side of logo
+        let text_start_y = frame_y + padding * 2;
+        let text_start_x = if final_logo_path.is_some() {
+            // Logo occupies left side, text starts after logo with spacing
+            let logo_height = (height as f32 / 3.0) as u32;
+            // Estimate logo width (assuming aspect ratio around 2.5 for text logo like "Peter")
+            let estimated_logo_width = (logo_height as f32 * 2.5) as u32;
+            padding * 3 + estimated_logo_width + padding * 2
         } else {
-            frame_y + padding
+            padding
         };
 
         let mut current_y = text_start_y;
@@ -240,19 +264,22 @@ impl WatermarkRenderer {
                 Rgba([0, 0, 0, 255])
             };
 
-            // Calculate text position based on anchor
-            let char_count = text.len();
-            let estimated_width = (char_count as f32 * font_size * 0.6) as i32;
-
-            let text_x = match template.anchor {
-                crate::layout::Anchor::TopLeft | crate::layout::Anchor::BottomLeft => {
-                    padding as i32 // Left aligned
-                }
-                crate::layout::Anchor::TopRight | crate::layout::Anchor::BottomRight => {
-                    (width as i32) - estimated_width - (padding as i32) // Right aligned
-                }
-                crate::layout::Anchor::Center => {
-                    center_x as i32 - (estimated_width / 2) // Center aligned
+            // Calculate text position
+            let text_x = if final_logo_path.is_some() {
+                // Logo on left, text on right side
+                text_start_x as i32
+            } else {
+                // No logo, use template anchor setting
+                let char_count = text.len();
+                let estimated_width = (char_count as f32 * font_size * 0.6) as i32;
+                match template.anchor {
+                    crate::layout::Anchor::TopLeft | crate::layout::Anchor::BottomLeft => {
+                        padding as i32
+                    }
+                    crate::layout::Anchor::TopRight | crate::layout::Anchor::BottomRight => {
+                        (width as i32) - estimated_width - (padding as i32)
+                    }
+                    crate::layout::Anchor::Center => center_x as i32 - (estimated_width / 2),
                 }
             };
 
@@ -276,62 +303,91 @@ impl WatermarkRenderer {
         logo_path: &str,
         center_x: i32,
         center_y: i32,
-        width: i32,
-        height: i32,
+        target_height: u32,
     ) -> Result<(), Box<dyn std::error::Error>> {
+        // Validate logo file exists
+        let logo_path_obj = std::path::Path::new(logo_path);
+        if !logo_path_obj.exists() {
+            println!("⚠️  Warning: Logo file not found: '{}'", logo_path);
+            println!("    Skipping logo rendering and continuing...");
+            return Ok(());
+        }
+
+        // Check file extension (optional warning)
+        if let Some(ext) = logo_path_obj.extension() {
+            let ext_str = ext.to_string_lossy().to_lowercase();
+            let supported = ["png", "jpg", "jpeg", "gif", "webp", "bmp"];
+            if !supported.contains(&ext_str.as_str()) {
+                println!(
+                    "⚠️  Warning: Logo format may not be supported: '{}'",
+                    ext_str
+                );
+                println!("    Supported formats: PNG, JPEG, GIF, WebP, BMP");
+            }
+        }
+
         // Try to load logo image
-        if let Ok(logo_img) = image::open(logo_path) {
-            let logo_rgba = logo_img.to_rgba8();
-            let (logo_w, logo_h) = logo_rgba.dimensions();
+        match image::open(logo_path) {
+            Ok(logo_img) => {
+                let logo_rgba = logo_img.to_rgba8();
+                let (logo_w, logo_h) = logo_rgba.dimensions();
 
-            // Scale logo to fit
-            let scale = (width as f32 / logo_w as f32).min(height as f32 / logo_h as f32);
-            let scaled_w = (logo_w as f32 * scale) as u32;
-            let scaled_h = (logo_h as f32 * scale) as u32;
+                // Scale logo to fit target height while maintaining aspect ratio
+                let aspect_ratio = logo_w as f32 / logo_h as f32;
+                let scaled_h = target_height;
+                let scaled_w = (target_height as f32 * aspect_ratio) as u32;
 
-            let start_x = center_x - (scaled_w as i32 / 2);
-            let start_y = center_y - (scaled_h as i32 / 2);
+                let start_x = center_x - (scaled_w as i32 / 2);
+                let start_y = center_y - (scaled_h as i32 / 2);
 
-            // Draw logo
-            for y in 0..scaled_h {
-                for x in 0..scaled_w {
-                    let src_x = (x as f32 / scale) as u32;
-                    let src_y = (y as f32 / scale) as u32;
-                    if src_x < logo_w && src_y < logo_h {
-                        let pixel = logo_rgba.get_pixel(src_x, src_y);
-                        let px = start_x + x as i32;
-                        let py = start_y + y as i32;
-                        if px >= 0
-                            && py >= 0
-                            && px < image.width() as i32
-                            && py < image.height() as i32
-                        {
-                            image.put_pixel(px as u32, py as u32, *pixel);
+                // Draw logo with alpha blending
+                for y in 0..scaled_h {
+                    for x in 0..scaled_w {
+                        // Calculate source pixel position based on scaling
+                        let src_x = ((x as f32 / scaled_w as f32) * logo_w as f32) as u32;
+                        let src_y = ((y as f32 / scaled_h as f32) * logo_h as f32) as u32;
+                        if src_x < logo_w && src_y < logo_h {
+                            let logo_pixel = logo_rgba.get_pixel(src_x, src_y);
+                            let px = start_x + x as i32;
+                            let py = start_y + y as i32;
+                            if px >= 0
+                                && py >= 0
+                                && px < image.width() as i32
+                                && py < image.height() as i32
+                            {
+                                let px_u32 = px as u32;
+                                let py_u32 = py as u32;
+
+                                // Alpha blending: blend logo pixel with background
+                                let alpha = logo_pixel[3] as f32 / 255.0;
+
+                                if alpha > 0.01 {
+                                    // Only render if alpha is significant
+                                    let bg_pixel = image.get_pixel(px_u32, py_u32);
+
+                                    // Blend each channel
+                                    let r = ((logo_pixel[0] as f32 * alpha)
+                                        + (bg_pixel[0] as f32 * (1.0 - alpha)))
+                                        as u8;
+                                    let g = ((logo_pixel[1] as f32 * alpha)
+                                        + (bg_pixel[1] as f32 * (1.0 - alpha)))
+                                        as u8;
+                                    let b = ((logo_pixel[2] as f32 * alpha)
+                                        + (bg_pixel[2] as f32 * (1.0 - alpha)))
+                                        as u8;
+
+                                    image.put_pixel(px_u32, py_u32, Rgba([r, g, b, 255]));
+                                }
+                            }
                         }
                     }
                 }
+                println!("✓ Logo loaded successfully: {}", logo_path);
             }
-        } else {
-            // If logo file not found, draw a placeholder
-            println!("Logo file not found: {}, using placeholder", logo_path);
-            // Draw a simple placeholder rectangle
-            let start_x = center_x - width / 2;
-            let start_y = center_y - height / 2;
-            for dy in 0..height {
-                for dx in 0..width {
-                    let px = start_x + dx;
-                    let py = start_y + dy;
-                    if px >= 0 && py >= 0 && px < image.width() as i32 && py < image.height() as i32
-                    {
-                        let border = dx < 2 || dx >= width - 2 || dy < 2 || dy >= height - 2;
-                        let color = if border {
-                            Rgba([100, 100, 100, 255])
-                        } else {
-                            Rgba([200, 200, 200, 255])
-                        };
-                        image.put_pixel(px as u32, py as u32, color);
-                    }
-                }
+            Err(_) => {
+                println!("⚠️  Warning: Failed to load logo: '{}'", logo_path);
+                println!("    Skipping logo rendering and continuing...");
+                return Ok(());
             }
         }
 

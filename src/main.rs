@@ -34,6 +34,10 @@ enum Commands {
         /// Custom font file path (uses default if not specified)
         #[arg(long)]
         font: Option<String>,
+
+        /// Logo file path (overrides template and environment variable)
+        #[arg(long)]
+        logo: Option<String>,
     },
 
     /// Batch process images in a directory
@@ -57,6 +61,10 @@ enum Commands {
         /// Custom font file path (uses default if not specified)
         #[arg(long)]
         font: Option<String>,
+
+        /// Logo file path (overrides template and environment variable)
+        #[arg(long)]
+        logo: Option<String>,
     },
 
     /// List available templates
@@ -79,6 +87,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             output,
             author,
             font,
+            logo,
         } => {
             process_single_image(
                 &input,
@@ -86,6 +95,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 &output,
                 author.as_deref(),
                 font.as_deref(),
+                logo.as_deref(),
             )?;
         }
         Commands::Batch {
@@ -94,6 +104,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             output_dir,
             author,
             font,
+            logo,
         } => {
             process_batch(
                 &input_dir,
@@ -101,6 +112,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 &output_dir,
                 author.as_deref(),
                 font.as_deref(),
+                logo.as_deref(),
             )?;
         }
         Commands::Templates => {
@@ -120,6 +132,7 @@ fn process_single_image(
     output_path: &str,
     author: Option<&str>,
     font: Option<&str>,
+    logo: Option<&str>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     println!("Processing image: {}", input_path);
 
@@ -152,6 +165,20 @@ fn process_single_image(
     }
     println!("Final variables: {:?}", variables);
 
+    // Determine Logo path with priority: CLI > ENV > Template
+    let env_logo = std::env::var("LITEMARK_LOGO").ok();
+    let final_logo: Option<String> = match (logo, env_logo) {
+        (Some(cli), _) => {
+            println!("Using custom logo: {}", cli);
+            Some(cli.to_string())
+        }
+        (None, Some(env)) => {
+            println!("Using logo from environment: {}", env);
+            Some(env)
+        }
+        (None, None) => None,
+    };
+
     // Render watermark
     // Check for custom font from CLI or environment variable (own the String then borrow)
     let env_font = std::env::var("LITEMARK_FONT").ok();
@@ -165,7 +192,7 @@ fn process_single_image(
         println!("Using default embedded font");
     }
     let renderer = WatermarkRenderer::with_font(font_path_owned.as_deref())?;
-    renderer.render_watermark(&mut image, &template, &variables)?;
+    renderer.render_watermark(&mut image, &template, &variables, final_logo.as_deref())?;
 
     // Save output
     litemark::io::save_image(&image, output_path)?;
@@ -180,6 +207,7 @@ fn process_batch(
     output_dir: &str,
     author: Option<&str>,
     font: Option<&str>,
+    logo: Option<&str>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     println!("Batch processing directory: {}", input_dir);
 
@@ -194,6 +222,20 @@ fn process_batch(
     let template = load_template(template_name)?;
     println!("Using template: {}", template.name);
 
+    // Determine Logo path with priority: CLI > ENV > Template
+    let env_logo = std::env::var("LITEMARK_LOGO").ok();
+    let final_logo: Option<String> = match (logo, env_logo) {
+        (Some(cli), _) => {
+            println!("Using custom logo: {}", cli);
+            Some(cli.to_string())
+        }
+        (None, Some(env)) => {
+            println!("Using logo from environment: {}", env);
+            Some(env)
+        }
+        (None, None) => None,
+    };
+
     // Process each image
     let mut processed = 0;
     let mut errors = 0;
@@ -205,6 +247,7 @@ fn process_batch(
             output_dir,
             author,
             font.as_deref(),
+            final_logo.as_deref(),
         ) {
             Ok(_) => {
                 processed += 1;
@@ -230,6 +273,7 @@ fn process_single_image_in_batch(
     output_dir: &str,
     author: Option<&str>,
     font: Option<&str>,
+    logo: Option<&str>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     // Load image
     let mut image = litemark::io::load_image(input_path)?;
@@ -257,7 +301,7 @@ fn process_single_image_in_batch(
         (None, e) => e,
     };
     let renderer = WatermarkRenderer::with_font(font_path_owned.as_deref())?;
-    renderer.render_watermark(&mut image, template, &variables)?;
+    renderer.render_watermark(&mut image, template, &variables, logo)?;
 
     // Create output path
     let output_path =
@@ -347,4 +391,93 @@ fn show_template(template_name: &str) -> Result<(), Box<dyn std::error::Error>> 
     println!("Template '{}':", template.name);
     println!("{}", json);
     Ok(())
+}
+
+#[cfg(test)]
+mod logo_override_tests {
+    use super::*;
+
+    #[test]
+    fn test_cli_logo_overrides_env() {
+        // Set environment variable
+        std::env::set_var("LITEMARK_LOGO", "env_logo.png");
+        
+        // Simulate CLI parameter
+        let cli_logo = Some("cli_logo.png");
+        
+        // Apply priority logic
+        let env_logo = std::env::var("LITEMARK_LOGO").ok();
+        let final_logo: Option<String> = match (cli_logo, env_logo) {
+            (Some(cli), _) => Some(cli.to_string()),
+            (None, Some(env)) => Some(env),
+            _ => None,
+        };
+        
+        // Verify result - CLI should take priority
+        assert_eq!(final_logo, Some("cli_logo.png".to_string()));
+        
+        // Cleanup
+        std::env::remove_var("LITEMARK_LOGO");
+    }
+    
+    #[test]
+    fn test_env_logo_when_no_cli() {
+        // Set environment variable
+        std::env::set_var("LITEMARK_LOGO", "env_logo.png");
+        let cli_logo: Option<&str> = None;
+        
+        // Apply priority logic
+        let env_logo = std::env::var("LITEMARK_LOGO").ok();
+        let final_logo: Option<String> = match (cli_logo, env_logo) {
+            (Some(cli), _) => Some(cli.to_string()),
+            (None, Some(env)) => Some(env),
+            _ => None,
+        };
+        
+        // Verify result - should use environment variable
+        assert_eq!(final_logo, Some("env_logo.png".to_string()));
+        
+        // Cleanup
+        std::env::remove_var("LITEMARK_LOGO");
+    }
+    
+    #[test]
+    fn test_no_logo_when_all_none() {
+        // Ensure no environment variable
+        std::env::remove_var("LITEMARK_LOGO");
+        let cli_logo: Option<&str> = None;
+        
+        // Apply priority logic
+        let env_logo = std::env::var("LITEMARK_LOGO").ok();
+        let final_logo: Option<String> = match (cli_logo, env_logo) {
+            (Some(cli), _) => Some(cli.to_string()),
+            (None, Some(env)) => Some(env),
+            _ => None,
+        };
+        
+        // Verify result - should be None
+        assert_eq!(final_logo, None);
+    }
+    
+    #[test]
+    fn test_cli_logo_priority_with_both_set() {
+        // Set environment variable
+        std::env::set_var("LITEMARK_LOGO", "env_logo.png");
+        let cli_logo = Some("cli_logo.png");
+        
+        // Apply priority logic
+        let env_logo = std::env::var("LITEMARK_LOGO").ok();
+        let final_logo: Option<String> = match (cli_logo, env_logo) {
+            (Some(cli), _) => Some(cli.to_string()),
+            (None, Some(env)) => Some(env),
+            _ => None,
+        };
+        
+        // Verify CLI parameter takes priority over environment variable
+        assert_eq!(final_logo, Some("cli_logo.png".to_string()));
+        assert_ne!(final_logo, Some("env_logo.png".to_string()));
+        
+        // Cleanup
+        std::env::remove_var("LITEMARK_LOGO");
+    }
 }

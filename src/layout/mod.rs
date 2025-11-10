@@ -249,10 +249,16 @@ mod tests {
                 item_type: ItemType::Text,
                 value: "{Author} • {ISO}".to_string(),
                 font_size: 16,
+                font_size_ratio: 0.2,
                 weight: None,
                 color: None,
             }],
             background: None,
+            frame_height_ratio: 0.1,
+            logo_size_ratio: 0.35,
+            primary_font_ratio: 0.2,
+            secondary_font_ratio: 0.14,
+            padding_ratio: 0.1,
         };
 
         let mut variables = HashMap::new();
