@@ -55,8 +55,9 @@ impl WatermarkRenderer {
 
     /// Load default embedded font
     fn load_default_font() -> Result<Font<'static>, Box<dyn std::error::Error>> {
-        // Default font: DejaVu Sans (embedded at compile time)
-        let font_data = include_bytes!("../../assets/fonts/DejaVuSans.ttf");
+        // Default font: Source Han Sans CN (embedded at compile time)
+        // Supports both Chinese and English characters
+        let font_data = include_bytes!("../../assets/fonts/SourceHanSansCN-Regular.otf");
 
         // Validate font data
         if font_data.len() < 100 {
