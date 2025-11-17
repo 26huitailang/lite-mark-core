@@ -14,16 +14,17 @@ path = "src/main.rs"
 
 [dependencies]
 # CLI framework
-clap = { version = "4.4", features = ["derive"] }
+clap = { version = "4.5.51", features = ["derive"] }
 
 # Image processing
-image = "0.24"
+image = "=0.24.9"
+libheif-rs = "1.0"
 
 # Font rendering
 rusttype = "0.9"
 
 # EXIF parsing
-kamadak-exif = "0.5"
+kamadak-exif = "0.6.1"
 
 # JSON handling
 serde = { version = "1.0", features = ["derive"] }
@@ -31,10 +32,19 @@ serde_json = "1.0"
 
 # Error handling
 anyhow = "1.0"
-thiserror = "1.0"
+thiserror = "2.0.17"
 
 # File I/O
 walkdir = "2.4"
+
+# Parallel processing
+rayon = "1.8"
+
+# Progress bar
+indicatif = "0.18.3"
+
+# System info
+num_cpus = "1.16"
 
 [dev-dependencies]
 tempfile = "3.8"
