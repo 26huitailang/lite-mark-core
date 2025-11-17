@@ -1,8 +1,17 @@
+[workspace]
+members = [
+    "litemark-core",
+]
+resolver = "2"
+
+# 保留向后兼容性
+# 原有的单体项目配置保留，但标记为已废弃
+# 新版本请使用 litemark-core (核心库) 和 litemark-cli (CLI 客户端)
 [package]
 name = "litemark"
 version = "0.1.0"
 edition = "2021"
-description = "A lightweight photo parameter watermark tool"
+description = "A lightweight photo parameter watermark tool (legacy)"
 license = "MIT"
 repository = "https://github.com/26huitailang/lite-mark-core"
 keywords = ["photo", "watermark", "exif", "photography"]
@@ -17,7 +26,7 @@ path = "src/main.rs"
 clap = { version = "4.5.51", features = ["derive"] }
 
 # Image processing
-image = "=0.24.9"
+image = "0.24.9"
 libheif-rs = "1.0"
 
 # Font rendering
