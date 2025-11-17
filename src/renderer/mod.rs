@@ -159,7 +159,7 @@ impl WatermarkRenderer {
         image: &mut RgbaImage,
         original_template: &Template, // Original template for classification
         substituted_template: &Template, // Substituted template for rendering
-        variables: &HashMap<String, String>,
+        _variables: &HashMap<String, String>,
         frame_y: u32,
         width: u32,
         height: u32,
@@ -433,6 +433,7 @@ impl WatermarkRenderer {
         Ok(())
     }
 
+    #[allow(dead_code)]
     fn substitute_text(&self, text: &str, variables: &HashMap<String, String>) -> String {
         let mut result = text.to_string();
         for (key, value) in variables {
