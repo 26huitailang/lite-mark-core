@@ -36,5 +36,14 @@ thiserror = "1.0"
 # File I/O
 walkdir = "2.4"
 
+# Parallel processing
+rayon = "1.8"
+
+# Progress bar
+indicatif = "0.17"
+
+# System info
+num_cpus = "1.16"
+
 [dev-dependencies]
 tempfile = "3.8"
