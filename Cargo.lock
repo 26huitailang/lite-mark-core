@@ -490,6 +490,35 @@ dependencies = [
 ]
 
 [[package]]
+name = "litemark-cli"
+version = "0.2.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "image",
+ "indicatif",
+ "litemark-core",
+ "num_cpus",
+ "rayon",
+ "walkdir",
+]
+
+[[package]]
+name = "litemark-core"
+version = "0.2.0"
+dependencies = [
+ "anyhow",
+ "image",
+ "kamadak-exif",
+ "libheif-rs",
+ "rusttype",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror",
+]
+
+[[package]]
 name = "memchr"
 version = "2.7.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
