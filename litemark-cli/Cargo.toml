@@ -9,7 +9,7 @@ keywords = ["photo", "watermark", "exif", "photography", "cli"]
 categories = ["multimedia::images", "command-line-utilities"]
 
 [[bin]]
-name = "litemark"
+name = "litemark-cli"
 path = "src/main.rs"
 
 [dependencies]
