@@ -1,12 +1,20 @@
 {
     "name": "Elegant",
     "anchor": "bottom-right",
+    "padding": 0,
     "frame_height_ratio": 0.08,
     "logo_size_ratio": 0.30,
     "primary_font_ratio": 0.24,
     "secondary_font_ratio": 0.16,
     "padding_ratio": 0.15,
     "items": [
+        {
+            "type": "logo",
+            "value": "",
+            "font_size_ratio": 0.0,
+            "weight": "normal",
+            "color": null
+        },
         {
             "type": "text",
             "value": "{Author}",

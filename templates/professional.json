@@ -9,6 +9,13 @@
     "padding_ratio": 0.15,
     "items": [
         {
+            "type": "logo",
+            "value": "",
+            "font_size_ratio": 0.0,
+            "weight": "normal",
+            "color": null
+        },
+        {
             "type": "text",
             "value": "{Author}",
             "font_size_ratio": 0.22,

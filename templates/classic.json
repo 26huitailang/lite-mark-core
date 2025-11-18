@@ -1,12 +1,20 @@
 {
     "name": "ClassicParam",
     "anchor": "bottom-left",
+    "padding": 0,
     "frame_height_ratio": 0.10,
     "logo_size_ratio": 0.35,
     "primary_font_ratio": 0.20,
     "secondary_font_ratio": 0.14,
     "padding_ratio": 0.10,
     "items": [
+        {
+            "type": "logo",
+            "value": "",
+            "font_size_ratio": 0.0,
+            "weight": "normal",
+            "color": null
+        },
         {
             "type": "text",
             "value": "{Author}",
