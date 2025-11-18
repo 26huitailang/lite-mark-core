@@ -20,18 +20,6 @@ pub fn load_template(template_name: &str) -> Result<Template, Box<dyn std::error
         return Ok(template.clone());
     }
 
-    // Try common aliases
-    let alias = match template_name.to_lowercase().as_str() {
-        "classic" => "ClassicParam",
-        "modern" => "Modern",
-        "minimal" => "Minimal",
-        _ => template_name,
-    };
-
-    if let Some(template) = builtin_templates.iter().find(|t| t.name == alias) {
-        return Ok(template.clone());
-    }
-
     // Check if it's a file path (absolute or relative)
     if Path::new(template_name).exists() {
         let content = std::fs::read_to_string(template_name)?;
@@ -59,7 +47,9 @@ pub fn load_template(template_name: &str) -> Result<Template, Box<dyn std::error
 
 /// Load font bytes from path or environment variable
 /// Returns None if no custom font specified (will use default embedded font)
-pub fn load_font_bytes(font_path: Option<&str>) -> Result<Option<Vec<u8>>, Box<dyn std::error::Error>> {
+pub fn load_font_bytes(
+    font_path: Option<&str>,
+) -> Result<Option<Vec<u8>>, Box<dyn std::error::Error>> {
     // Priority: CLI argument > Environment variable
     let env_font = std::env::var("LITEMARK_FONT").ok();
     let final_font_path = font_path.or(env_font.as_deref());
@@ -74,7 +64,9 @@ pub fn load_font_bytes(font_path: Option<&str>) -> Result<Option<Vec<u8>>, Box<d
 
 /// Load logo bytes from path or environment variable
 /// Returns None if no logo specified
-pub fn load_logo_bytes(logo_path: Option<&str>) -> Result<Option<Vec<u8>>, Box<dyn std::error::Error>> {
+pub fn load_logo_bytes(
+    logo_path: Option<&str>,
+) -> Result<Option<Vec<u8>>, Box<dyn std::error::Error>> {
     // Priority: CLI argument > Environment variable
     let env_logo = std::env::var("LITEMARK_LOGO").ok();
     let final_logo_path = logo_path.or(env_logo.as_deref());
@@ -114,11 +106,7 @@ pub fn find_images_in_directory(dir: &str) -> Result<Vec<String>, Box<dyn std::e
 }
 
 /// Create output path with suffix
-pub fn create_output_path(
-    input_path: &str,
-    output_dir: Option<&str>,
-    suffix: &str,
-) -> String {
+pub fn create_output_path(input_path: &str, output_dir: Option<&str>, suffix: &str) -> String {
     let input = Path::new(input_path);
     let file_stem = input.file_stem().unwrap().to_string_lossy();
     let extension = input.extension().unwrap_or_default().to_string_lossy();

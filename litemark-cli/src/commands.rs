@@ -1,4 +1,4 @@
-use litemark_core::{image_io, exif, layout, renderer::WatermarkRenderer};
+use litemark_core::{exif, image_io, layout, renderer::WatermarkRenderer};
 
 use crate::utils;
 
@@ -15,7 +15,7 @@ pub fn process_single_image(
 
     // Read image file to bytes
     let image_bytes = std::fs::read(input_path)?;
-    
+
     // Decode image using Core
     let mut image = image_io::decode_image(&image_bytes)?;
     println!("Loaded image: {}x{}", image.width(), image.height());
@@ -61,7 +61,7 @@ pub fn process_single_image(
 
     // Create renderer with font bytes
     let renderer = WatermarkRenderer::from_font_bytes(font_bytes.as_deref())?;
-    
+
     // Render watermark with logo bytes
     renderer.render_watermark_with_logo_bytes(
         &mut image,
@@ -101,9 +101,9 @@ pub fn show_template(template_name: &str) -> Result<(), Box<dyn std::error::Erro
 
 fn describe_template(template: &layout::Template) -> &'static str {
     match template.name.as_str() {
-        "ClassicParam" => "Bottom-left corner with photographer name and basic parameters",
-        "Modern" => "Top-right corner with clean typography",
-        "Minimal" => "Subtle bottom-right signature",
+        "Classic" => "Bottom-left corner with photographer name and basic parameters",
+        "Compact" => "Ultra-compact single-line layout",
+        "Professional" => "Multi-column professional layout with detailed information",
         _ => "Custom template",
     }
 }
