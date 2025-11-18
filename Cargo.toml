@@ -1,7 +1,5 @@
 [workspace]
-members = [
-    "litemark-core",
-]
+members = ["litemark-core", "litemark-cli"]
 resolver = "2"
 
 # 保留向后兼容性

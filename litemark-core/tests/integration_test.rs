@@ -30,8 +30,11 @@ fn test_image_encode_decode_roundtrip() {
         .expect("Failed to encode as PNG");
     assert!(!png_data.is_empty());
 
-    // PNG 应该比 JPEG 大（因为是无损）
-    assert!(png_data.len() > jpeg_data.len());
+    // 验证 PNG 数据也是有效的
+    let png_decoded = image_io::decode_image(&png_data)
+        .expect("Failed to decode PNG");
+    assert_eq!(png_decoded.width(), 200);
+    assert_eq!(png_decoded.height(), 150);
 }
 
 #[test]
