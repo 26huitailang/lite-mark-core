@@ -1,0 +1,38 @@
+[package]
+name = "litemark-cli"
+version = "0.2.0"
+edition = "2021"
+description = "Command-line client for LiteMark - lightweight photo watermark processing"
+license = "MIT"
+repository = "https://github.com/26huitailang/lite-mark-core"
+keywords = ["photo", "watermark", "exif", "photography", "cli"]
+categories = ["multimedia::images", "command-line-utilities"]
+
+[[bin]]
+name = "litemark-cli"
+path = "src/main.rs"
+
+[dependencies]
+# Core library
+litemark-core = { path = "../litemark-core" }
+
+# CLI framework
+clap = { version = "4.5.51", features = ["derive"] }
+
+# Image processing (for format types)
+image = "0.24.9"
+
+# Parallel processing
+rayon = "1.8"
+
+# Progress bar
+indicatif = "0.18.3"
+
+# File I/O
+walkdir = "2.4"
+
+# System info
+num_cpus = "1.16"
+
+# Error handling
+anyhow = "1.0"

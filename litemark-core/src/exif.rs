@@ -1,8 +1,7 @@
 use exif::{In, Reader, Tag, Value};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::fs::File;
-use std::io::BufReader;
+use std::io::Cursor;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExifData {
@@ -110,45 +109,32 @@ impl ExifData {
     }
 }
 
-/// 从图片文件中提取 EXIF 数据
+/// 从字节流中提取 EXIF 数据（Core 接口，用于 Web/WASM）
 ///
 /// # Arguments
-/// * `image_path` - 图片文件路径
+/// * `image_data` - 图片文件的字节数据
 ///
 /// # Returns
 /// * `Ok(ExifData)` - 成功提取的 EXIF 数据，缺失字段为 None
-/// * `Err` - 文件读取错误
+/// * `Err` - 解析错误
 ///
 /// # Examples
 /// ```
-/// let exif_data = extract_exif_data("photo.jpg")?;
+/// let image_bytes = std::fs::read("photo.jpg")?;
+/// let exif_data = extract_from_bytes(&image_bytes)?;
 /// if let Some(iso) = exif_data.iso {
 ///     println!("ISO: {}", iso);
 /// }
 /// ```
-pub fn extract_exif_data(image_path: &str) -> Result<ExifData, Box<dyn std::error::Error>> {
-    println!("Extracting EXIF data from: {}", image_path);
-
-    // 打开文件
-    let file = match File::open(image_path) {
-        Ok(f) => f,
-        Err(e) => {
-            eprintln!("Failed to open file {}: {}", image_path, e);
-            return Err(Box::new(e));
-        }
-    };
-
-    let mut bufreader = BufReader::new(file);
-
+pub fn extract_from_bytes(image_data: &[u8]) -> Result<ExifData, Box<dyn std::error::Error>> {
+    let mut cursor = Cursor::new(image_data);
+    
     // 解析 EXIF 数据
     let exifreader = Reader::new();
-    let exif = match exifreader.read_from_container(&mut bufreader) {
+    let exif = match exifreader.read_from_container(&mut cursor) {
         Ok(exif) => exif,
-        Err(e) => {
-            eprintln!("Warning: No EXIF data found in image: {}", image_path);
-            eprintln!("  Error: {}", e);
-            eprintln!("  This image may not contain EXIF data or format is unsupported");
-            eprintln!("  Returning empty EXIF data");
+        Err(_) => {
+            // No EXIF data found, return empty ExifData
             return Ok(ExifData::new());
         }
     };
@@ -163,16 +149,6 @@ pub fn extract_exif_data(image_path: &str) -> Result<ExifData, Box<dyn std::erro
     data.lens_model = extract_lens_model(&exif);
     data.date_time = extract_date_time(&exif);
     data.author = extract_author(&exif);
-
-    println!("Successfully extracted EXIF data:");
-    println!("  ISO: {:?}", data.iso);
-    println!("  Aperture: {:?}", data.aperture);
-    println!("  Shutter: {:?}", data.shutter_speed);
-    println!("  Focal: {:?}", data.focal_length);
-    println!("  Camera: {:?}", data.camera_model);
-    println!("  Lens: {:?}", data.lens_model);
-    println!("  DateTime: {:?}", data.date_time);
-    println!("  Author: {:?}", data.author);
 
     Ok(data)
 }
@@ -316,5 +292,14 @@ mod tests {
         let data = ExifData::default();
         assert!(data.iso.is_none());
         assert!(data.aperture.is_none());
+    }
+
+    #[test]
+    fn test_extract_from_empty_bytes() {
+        let empty_data: &[u8] = &[];
+        let result = extract_from_bytes(empty_data);
+        assert!(result.is_ok());
+        let exif_data = result.unwrap();
+        assert!(exif_data.iso.is_none());
     }
 }
