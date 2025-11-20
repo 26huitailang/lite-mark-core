@@ -244,6 +244,7 @@
 
         let selectedFiles = [];
         let wasmReady = false;
+        let heicSupported = null; // null=未检测, true=支持, false=不支持
 
         // 预设模板
         const templates = {
@@ -320,7 +321,66 @@
             msgEl.style.display = 'block';
         }
 
-        // HEIC转换为JPEG（改进版）
+        // 检测HEIC支持
+        async function checkHeicSupport() {
+            if (heicSupported !== null) {
+                return heicSupported;
+            }
+
+            try {
+                // 创建一个最小的HEIC文件标识符来测试
+                // 使用一个小的测试图片（如果有）或直接假设不支持
+                // Safari 会支持 createImageBitmap 处理 HEIC
+                // 其他浏览器通常不支持
+
+                // 简单检测：是否为Safari
+                const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+                heicSupported = isSafari;
+
+                console.log(`HEIC支持检测: ${heicSupported ? '支持' : '不支持'} (浏览器: ${navigator.userAgent.match(/\b(Safari|Chrome|Firefox|Edge)\b/)?.[0] || 'Unknown'})`);
+                return heicSupported;
+            } catch (err) {
+                console.error('HEIC支持检测失败:', err);
+                heicSupported = false;
+                return false;
+            }
+        }
+
+        // 预检查文件列表，过滤掉不支持的HEIC
+        async function validateFiles(files) {
+            const supported = await checkHeicSupport();
+            const validFiles = [];
+            const rejectedHeicFiles = [];
+
+            for (const file of files) {
+                const fileName = file.name.toLowerCase();
+                const isHeic = fileName.endsWith('.heic') ||
+                    fileName.endsWith('.heif') ||
+                    file.type === 'image/heic' ||
+                    file.type === 'image/heif';
+
+                if (isHeic && !supported) {
+                    rejectedHeicFiles.push(file.name);
+                } else {
+                    validFiles.push(file);
+                }
+            }
+
+            // 显示拒绝消息
+            if (rejectedHeicFiles.length > 0) {
+                const fileList = rejectedHeicFiles.join('\n  • ');
+                showMessage(
+                    `⚠️ 您的浏览器不支持HEIC格式，以下文件已自动过滤：\n  • ${fileList}\n\n` +
+                    `💡 解决方案：\n` +
+                    `1. 使用 Safari 浏览器打开此页面\n` +
+                    `2. 在iPhone/Mac上将HEIC转换为JPG后上传\n` +
+                    `3. 使用在线工具（如 heic2jpg.com）转换`,
+                    'error'
+                );
+            }
+
+            return validFiles;
+        }        // HEIC转换为JPEG（仅在Safari中使用）
         async function convertHeicToJpeg(file) {
             // 检查是否为HEIC格式
             const fileName = file.name.toLowerCase();
@@ -428,9 +488,15 @@
 
         uploadArea.addEventListener('click', () => fileInput.click());
 
-        fileInput.addEventListener('change', (e) => {
-            selectedFiles = Array.from(e.target.files);
-            showMessage(`✓ 已选择 ${selectedFiles.length} 张图片`, 'success');
+        fileInput.addEventListener('change', async (e) => {
+            const files = Array.from(e.target.files);
+            selectedFiles = await validateFiles(files);
+
+            if (selectedFiles.length > 0) {
+                showMessage(`✓ 已选择 ${selectedFiles.length} 张图片`, 'success');
+            } else if (files.length > 0) {
+                showMessage('⚠️ 所有文件均不可用，请检查文件格式', 'error');
+            }
         });
 
         // 拖拽上传
@@ -443,11 +509,18 @@
             uploadArea.classList.remove('dragover');
         });
 
-        uploadArea.addEventListener('drop', (e) => {
+        uploadArea.addEventListener('drop', async (e) => {
             e.preventDefault();
             uploadArea.classList.remove('dragover');
-            selectedFiles = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
-            showMessage(`✓ 已选择 ${selectedFiles.length} 张图片`, 'success');
+
+            const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/') || f.name.match(/\.(heic|heif)$/i));
+            selectedFiles = await validateFiles(files);
+
+            if (selectedFiles.length > 0) {
+                showMessage(`✓ 已选择 ${selectedFiles.length} 张图片`, 'success');
+            } else if (files.length > 0) {
+                showMessage('⚠️ 所有文件均不可用，请检查文件格式', 'error');
+            }
         });
 
         // 处理图片
@@ -491,12 +564,18 @@
                 const processedFiles = [];
                 const originalFileNames = [];
 
-                // 转换HEIC文件
-                showMessage('正在处理图片文件...', 'info');
+                // 转换HEIC文件（只在Safari中需要）
+                const supported = await checkHeicSupport();
                 for (const file of selectedFiles) {
-                    const convertedFile = await convertHeicToJpeg(file);
-                    if (convertedFile) {
-                        processedFiles.push(convertedFile);
+                    let processFile = file;
+
+                    // 只有Safari需要转换HEIC
+                    if (supported) {
+                        processFile = await convertHeicToJpeg(file);
+                    }
+
+                    if (processFile) {
+                        processedFiles.push(processFile);
                         originalFileNames.push(file.name);
                     }
                 }
@@ -507,10 +586,7 @@
                     return;
                 }
 
-                if (processedFiles.length < selectedFiles.length) {
-                    const skipped = selectedFiles.length - processedFiles.length;
-                    showMessage(`⚠️ 跳过了 ${skipped} 个无法处理的文件，继续处理剩余 ${processedFiles.length} 个文件`, 'info');
-                }
+                showMessage(`正在处理 ${processedFiles.length} 张图片...`, 'info');
 
                 // 读取logo文件
                 let logoBytes = null;
