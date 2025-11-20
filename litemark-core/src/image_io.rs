@@ -1,4 +1,6 @@
-use image::{DynamicImage, ImageFormat, ImageOutputFormat, RgbaImage};
+#[cfg(not(target_arch = "wasm32"))]
+use image::RgbaImage;
+use image::{DynamicImage, ImageFormat, ImageOutputFormat};
 #[cfg(not(target_arch = "wasm32"))]
 use libheif_rs::{ColorSpace, HeifContext, RgbChroma};
 use std::io::Cursor;

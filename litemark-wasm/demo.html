@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LiteMark WASM Demo</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            max-width: 1200px;
+            margin: 40px auto;
+            padding: 0 20px;
+            background: #f5f5f5;
+        }
+
+        .container {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        .upload-area {
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .upload-area:hover {
+            border-color: #007AFF;
+            background: #f9f9f9;
+        }
+
+        .upload-area.dragover {
+            border-color: #007AFF;
+            background: #e3f2fd;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .controls {
+            margin: 20px 0;
+        }
+
+        .control-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 5px;
+            color: #333;
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+
+        textarea {
+            font-family: monospace;
+            resize: vertical;
+        }
+
+        button {
+            background: #007AFF;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            transition: background 0.3s;
+        }
+
+        button:hover:not(:disabled) {
+            background: #0056b3;
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .progress {
+            margin: 20px 0;
+            display: none;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 30px;
+            background: #f0f0f0;
+            border-radius: 15px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #007AFF, #00C7FF);
+            width: 0%;
+            transition: width 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 500;
+        }
+
+        .preview {
+            margin-top: 30px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .preview-item {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .preview-item img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .preview-item .info {
+            padding: 10px;
+            background: #f9f9f9;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .error {
+            color: #d32f2f;
+            background: #ffebee;
+            padding: 10px;
+            border-radius: 6px;
+            margin: 10px 0;
+            white-space: pre-line;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .success {
+            color: #388e3c;
+            background: #e8f5e9;
+            padding: 10px;
+            border-radius: 6px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>📸 LiteMark WASM Demo</h1>
+        <p class="subtitle">在浏览器中为照片添加参数水印</p>
+
+        <div class="upload-area" id="uploadArea">
+            <input type="file" id="fileInput" class="file-input" accept="image/*" multiple>
+            <p style="margin: 0; color: #666;">
+                <strong>点击选择图片</strong> 或 <strong>拖拽图片到此处</strong>
+            </p>
+            <p style="margin: 10px 0 0 0; font-size: 14px; color: #999;">
+                支持 JPG、PNG、WebP 等格式
+            </p>
+            <p style="margin: 5px 0 0 0; font-size: 12px; color: #ff9800;">
+                ⚠️ HEIC格式仅Safari浏览器支持，其他浏览器请先转换为JPG
+            </p>
+        </div>
+
+        <div class="controls">
+            <div class="control-group">
+                <label for="authorInput">作者名称（可选）</label>
+                <input type="text" id="authorInput" placeholder="留空则使用EXIF中的作者信息">
+            </div>
+
+            <div class="control-group">
+                <label for="logoInput">Logo图片（可选）</label>
+                <input type="file" id="logoInput" accept="image/png,image/jpeg,image/jpg"
+                    style="display: block; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
+                <small style="color: #999; font-size: 12px;">推荐使用PNG透明背景，尺寸建议200x200以上</small>
+            </div>
+
+            <div class="control-group">
+                <label for="templateSelect">选择模板</label>
+                <select id="templateSelect">
+                    <option value="classic">Classic - 经典布局</option>
+                    <option value="compact">Compact - 紧凑单行</option>
+                    <option value="professional">Professional - 专业多列</option>
+                    <option value="custom">Custom - 自定义JSON</option>
+                </select>
+            </div>
+
+            <div class="control-group" id="templateJsonGroup" style="display: none;">
+                <label for="templateInput">自定义模板JSON</label>
+                <textarea id="templateInput" rows="10" placeholder='粘贴自定义模板JSON'></textarea>
+            </div>
+
+            <button id="processBtn">🚀 处理图片</button>
+        </div>
+
+        <div class="progress" id="progress">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill">0%</div>
+            </div>
+        </div>
+
+        <div id="message"></div>
+
+        <div class="preview" id="preview"></div>
+    </div>
+
+    <script type="module">
+        import init, { process_image, process_batch } from './pkg/litemark_wasm.js';
+
+        let selectedFiles = [];
+        let wasmReady = false;
+
+        // 预设模板
+        const templates = {
+            classic: {
+                "name": "Classic",
+                "anchor": "bottom-left",
+                "padding": 0,
+                "frame_height_ratio": 0.10,
+                "logo_size_ratio": 0.35,
+                "primary_font_ratio": 0.20,
+                "secondary_font_ratio": 0.14,
+                "padding_ratio": 0.10,
+                "items": [
+                    { "type": "logo", "value": "", "font_size_ratio": 0.0 },
+                    { "type": "text", "value": "{Author}", "font_size_ratio": 0.20 },
+                    { "type": "text", "value": "{Camera}", "font_size_ratio": 0.14 },
+                    { "type": "text", "value": "{Lens}", "font_size_ratio": 0.14 },
+                    { "type": "text", "value": "{Focal} {Aperture} {Shutter} {ISO}", "font_size_ratio": 0.14 }
+                ]
+            },
+            compact: {
+                "name": "Compact",
+                "anchor": "bottom-left",
+                "padding": 0,
+                "frame_height_ratio": 0.08,
+                "logo_size_ratio": 0.30,
+                "primary_font_ratio": 0.18,
+                "secondary_font_ratio": 0.12,
+                "padding_ratio": 0.08,
+                "items": [
+                    { "type": "logo", "value": "", "font_size_ratio": 0.0 },
+                    { "type": "text", "value": "{Author} · {Camera} · {Focal} {Aperture} {Shutter} ISO{ISO}", "font_size_ratio": 0.12 }
+                ]
+            },
+            professional: {
+                "name": "Professional",
+                "anchor": "bottom-left",
+                "padding": 0,
+                "frame_height_ratio": 0.12,
+                "logo_size_ratio": 0.40,
+                "primary_font_ratio": 0.22,
+                "secondary_font_ratio": 0.15,
+                "padding_ratio": 0.12,
+                "items": [
+                    { "type": "logo", "value": "", "font_size_ratio": 0.0 },
+                    { "type": "text", "value": "{Author}", "font_size_ratio": 0.22 },
+                    { "type": "text", "value": "{DateTime}", "font_size_ratio": 0.12 },
+                    { "type": "text", "value": "{Camera}", "font_size_ratio": 0.15 },
+                    { "type": "text", "value": "{Lens}", "font_size_ratio": 0.15 },
+                    { "type": "text", "value": "{Focal}", "font_size_ratio": 0.15 },
+                    { "type": "text", "value": "{Aperture}", "font_size_ratio": 0.15 },
+                    { "type": "text", "value": "{Shutter}", "font_size_ratio": 0.15 },
+                    { "type": "text", "value": "ISO {ISO}", "font_size_ratio": 0.15 }
+                ]
+            }
+        };
+
+        // 初始化 WASM
+        async function initWasm() {
+            try {
+                await init();
+                wasmReady = true;
+                showMessage('✅ WASM 模块加载成功', 'success');
+            } catch (err) {
+                showMessage(`❌ WASM 加载失败: ${err.message}`, 'error');
+            }
+        }
+
+        // 显示消息
+        function showMessage(msg, type = 'info') {
+            const msgEl = document.getElementById('message');
+            msgEl.className = type;
+            msgEl.textContent = msg;
+            msgEl.style.display = 'block';
+        }
+
+        // HEIC转换为JPEG（改进版）
+        async function convertHeicToJpeg(file) {
+            // 检查是否为HEIC格式
+            const fileName = file.name.toLowerCase();
+            const isHeic = fileName.endsWith('.heic') ||
+                fileName.endsWith('.heif') ||
+                file.type === 'image/heic' ||
+                file.type === 'image/heif';
+
+            // 非HEIC文件直接返回
+            if (!isHeic) {
+                return file;
+            }
+
+            console.log(`检测到HEIC文件: ${file.name}, type: ${file.type}, size: ${file.size}`);
+
+            try {
+                // 方法1: 尝试使用createImageBitmap
+                console.log('尝试方法1: createImageBitmap...');
+                const bitmap = await createImageBitmap(file);
+                console.log(`成功解码HEIC: ${bitmap.width}x${bitmap.height}`);
+
+                // 转换为JPEG
+                const canvas = document.createElement('canvas');
+                canvas.width = bitmap.width;
+                canvas.height = bitmap.height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(bitmap, 0, 0);
+
+                // 转为Blob
+                const blob = await new Promise((resolve, reject) => {
+                    canvas.toBlob(
+                        (b) => {
+                            if (b) {
+                                resolve(b);
+                            } else {
+                                reject(new Error('Canvas toBlob failed'));
+                            }
+                        },
+                        'image/jpeg',
+                        0.95
+                    );
+                });
+
+                console.log(`HEIC转JPEG成功: ${blob.size} bytes`);
+
+                // 创建新File对象
+                const newFileName = file.name.replace(/\.(heic|heif)$/i, '.jpg');
+                return new File([blob], newFileName, {
+                    type: 'image/jpeg',
+                    lastModified: file.lastModified
+                });
+            } catch (err) {
+                console.error(`HEIC转换失败: ${file.name}`, err);
+
+                // 方法2: 如果浏览器不支持HEIC解码，尝试直接作为JPEG处理
+                // 某些情况下文件扩展名是.heic但实际是JPEG
+                try {
+                    console.log('尝试方法2: 检查是否为伪装的JPEG...');
+                    const arrayBuffer = await file.arrayBuffer();
+                    const uint8 = new Uint8Array(arrayBuffer);
+
+                    // 检查JPEG魔数 (0xFF 0xD8 0xFF)
+                    if (uint8[0] === 0xFF && uint8[1] === 0xD8 && uint8[2] === 0xFF) {
+                        console.log('检测到JPEG魔数，创建JPEG文件');
+                        return new File([arrayBuffer], file.name.replace(/\.(heic|heif)$/i, '.jpg'), {
+                            type: 'image/jpeg',
+                            lastModified: file.lastModified
+                        });
+                    }
+
+                    console.warn(`${file.name} 无法转换，跳过此文件`);
+                    showMessage(
+                        `❌ ${file.name}: 您的浏览器不支持HEIC格式。\n` +
+                        `💡 解决方案：\n` +
+                        `1. 在iPhone/Mac上转换为JPG后上传\n` +
+                        `2. 使用在线工具（如heic2jpg.com）转换\n` +
+                        `3. 或使用支持HEIC的浏览器（Safari）`,
+                        'error'
+                    );
+                    return null;
+                } catch (err2) {
+                    console.error('方法2也失败:', err2);
+                    showMessage(`⚠️ ${file.name} 处理失败，已跳过`, 'error');
+                    return null;
+                }
+            }
+        }
+
+        // 模板选择器
+        const templateSelect = document.getElementById('templateSelect');
+        const templateJsonGroup = document.getElementById('templateJsonGroup');
+        const templateInput = document.getElementById('templateInput');
+
+        templateSelect.addEventListener('change', (e) => {
+            if (e.target.value === 'custom') {
+                templateJsonGroup.style.display = 'block';
+            } else {
+                templateJsonGroup.style.display = 'none';
+            }
+        });
+
+        // 文件选择
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+
+        uploadArea.addEventListener('click', () => fileInput.click());
+
+        fileInput.addEventListener('change', (e) => {
+            selectedFiles = Array.from(e.target.files);
+            showMessage(`✓ 已选择 ${selectedFiles.length} 张图片`, 'success');
+        });
+
+        // 拖拽上传
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            selectedFiles = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+            showMessage(`✓ 已选择 ${selectedFiles.length} 张图片`, 'success');
+        });
+
+        // 处理图片
+        document.getElementById('processBtn').addEventListener('click', async () => {
+            if (!wasmReady) {
+                showMessage('⚠️ WASM 模块未就绪', 'error');
+                return;
+            }
+
+            if (selectedFiles.length === 0) {
+                showMessage('⚠️ 请先选择图片', 'error');
+                return;
+            }
+
+            const author = document.getElementById('authorInput').value.trim() || null;
+
+            // 获取模板JSON
+            let templateJson;
+            const selectedTemplate = templateSelect.value;
+            if (selectedTemplate === 'custom') {
+                templateJson = templateInput.value.trim();
+                if (!templateJson) {
+                    showMessage('⚠️ 请输入自定义模板JSON', 'error');
+                    return;
+                }
+            } else {
+                templateJson = JSON.stringify(templates[selectedTemplate]);
+            }
+
+            const processBtn = document.getElementById('processBtn');
+            const progressEl = document.getElementById('progress');
+            const progressFill = document.getElementById('progressFill');
+            const previewEl = document.getElementById('preview');
+
+            processBtn.disabled = true;
+            progressEl.style.display = 'block';
+            previewEl.innerHTML = '';
+
+            try {
+                const imageDataArray = [];
+                const processedFiles = [];
+                const originalFileNames = [];
+
+                // 转换HEIC文件
+                showMessage('正在处理图片文件...', 'info');
+                for (const file of selectedFiles) {
+                    const convertedFile = await convertHeicToJpeg(file);
+                    if (convertedFile) {
+                        processedFiles.push(convertedFile);
+                        originalFileNames.push(file.name);
+                    }
+                }
+
+                if (processedFiles.length === 0) {
+                    showMessage('⚠️ 没有可处理的图片', 'error');
+                    processBtn.disabled = false;
+                    return;
+                }
+
+                if (processedFiles.length < selectedFiles.length) {
+                    const skipped = selectedFiles.length - processedFiles.length;
+                    showMessage(`⚠️ 跳过了 ${skipped} 个无法处理的文件，继续处理剩余 ${processedFiles.length} 个文件`, 'info');
+                }
+
+                // 读取logo文件
+                let logoBytes = null;
+                const logoInput = document.getElementById('logoInput');
+                if (logoInput.files && logoInput.files[0]) {
+                    const logoFile = logoInput.files[0];
+                    const logoArrayBuffer = await logoFile.arrayBuffer();
+                    logoBytes = new Uint8Array(logoArrayBuffer);
+                    showMessage(`✓ 已加载Logo: ${logoFile.name}`, 'info');
+                }
+
+                for (const file of processedFiles) {
+                    const arrayBuffer = await file.arrayBuffer();
+                    const uint8Array = new Uint8Array(arrayBuffer);
+                    imageDataArray.push(uint8Array);
+                }
+
+                const startTime = Date.now();
+                const results = process_batch(
+                    imageDataArray,
+                    templateJson,
+                    author,
+                    null, // font_bytes
+                    logoBytes, // logo_bytes
+                    (completed, total) => {
+                        const percent = Math.round((completed / total) * 100);
+                        progressFill.style.width = `${percent}%`;
+                        progressFill.textContent = `${percent}%`;
+                    }
+                );
+
+                const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
+                showMessage(`✅ 成功处理 ${results.length} 张图片，耗时 ${elapsed}秒`, 'success');
+
+                // 显示预览
+                results.forEach((outputBytes, index) => {
+                    const blob = new Blob([outputBytes], { type: 'image/jpeg' });
+                    const url = URL.createObjectURL(blob);
+
+                    const item = document.createElement('div');
+                    item.className = 'preview-item';
+                    item.innerHTML = `
+                        <img src="${url}" alt="处理后图片 ${index + 1}">
+                        <div class="info">
+                            <div>原文件: ${originalFileNames[index]}</div>
+                            <div>大小: ${(outputBytes.length / 1024).toFixed(1)} KB</div>
+                            <a href="${url}" download="watermarked_${index + 1}.jpg" style="color: #007AFF; text-decoration: none;">📥 下载</a>
+                        </div>
+                    `;
+                    previewEl.appendChild(item);
+                });
+
+            } catch (err) {
+                showMessage(`❌ 处理失败: ${err.message}`, 'error');
+                console.error(err);
+            } finally {
+                processBtn.disabled = false;
+                progressEl.style.display = 'none';
+            }
+        });
+
+        // 启动时初始化
+        initWasm();
+    </script>
+</body>
+
+</html>
