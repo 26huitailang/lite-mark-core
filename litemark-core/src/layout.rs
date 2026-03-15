@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::path::Path;
 
 // Default values for template scaling ratios
 fn default_frame_height_ratio() -> f32 {
@@ -142,11 +143,14 @@ fn substitute_text(text: &str, variables: &HashMap<String, String>) -> String {
 
 pub fn create_builtin_templates() -> Vec<Template> {
     let mut templates = vec![];
+    let manifest_templates_dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../templates");
 
-    // Load all templates from JSON files
     for template_name in ["classic", "compact", "professional"] {
-        let template_path = format!("templates/{}.json", template_name);
-        if let Ok(content) = std::fs::read_to_string(&template_path) {
+        let relative_path = Path::new("templates").join(format!("{}.json", template_name));
+        let manifest_path = manifest_templates_dir.join(format!("{}.json", template_name));
+        let content = std::fs::read_to_string(&relative_path)
+            .or_else(|_| std::fs::read_to_string(&manifest_path));
+        if let Ok(content) = content {
             if let Ok(template) = Template::from_json(&content) {
                 templates.push(template);
             }

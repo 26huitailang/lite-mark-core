@@ -1,0 +1,42 @@
+name: Test and Quality Gate
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  checks:
+    name: Rust Checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+          targets: wasm32-unknown-unknown
+
+      - name: Cache Rust build
+        uses: Swatinem/rust-cache@v2
+
+      - name: Run clippy for native crates
+        run: cargo clippy --workspace --all-targets --exclude litemark-wasm
+
+      - name: Run native tests
+        run: cargo test --workspace --exclude litemark-wasm --locked --lib --bins --tests
+
+      - name: Check wasm crate
+        run: cargo check -p litemark-wasm --target wasm32-unknown-unknown --locked

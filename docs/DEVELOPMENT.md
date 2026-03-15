@@ -207,6 +207,20 @@ mod tests {
 
 在 `tests/` 目录添加集成测试，测试完整的流程。
 
+### 客户问题回归测试集
+
+客户问题可以直接沉淀到数据文件中，作为长期回归测试基线：
+
+- 文件位置：`litemark-core/tests/fixtures/customer_regressions.json`
+- 执行入口：`test_customer_regression_suite`
+- 用例字段：`id`、`template`、`variables`、`expected`
+
+新增客户问题时，先写最小可复现模板与变量，再补期望输出，并运行：
+
+```bash
+cargo test -p litemark-core --test integration_test test_customer_regression_suite
+```
+
 ### 测试图片
 
 使用 `test_images/` 目录中的图片进行测试。确保测试图片：
@@ -286,11 +300,16 @@ docs: update architecture documentation
 
 项目使用 GitHub Actions 进行自动化：
 
-- **构建测试：** 每次 push 触发
-- **Release 构建：** 发布 tag 时构建跨平台二进制
-- **Lint 检查：** 自动运行 `cargo clippy`
+- **测试门禁：** `.github/workflows/test.yml` 在 push/PR 运行 clippy、native tests、wasm check
+- **Release 构建：** `.github/workflows/release.yml` 在 tag 发布时构建跨平台二进制
 
-查看 `.github/workflows/release.yml` 了解详情。
+建议本地提交前执行：
+
+```bash
+cargo clippy --workspace --all-targets --exclude litemark-wasm
+cargo test --workspace --exclude litemark-wasm --locked --lib --bins --tests
+cargo check -p litemark-wasm --target wasm32-unknown-unknown --locked
+```
 
 ## 依赖管理
 
@@ -354,4 +373,3 @@ cargo update rusttype
 - 查看 [ARCHITECTURE.md](./ARCHITECTURE.md) 了解架构细节
 - 提交 [Issue](https://github.com/26huitailang/lite-mark-core/issues)
 - 参与 [Discussions](https://github.com/26huitailang/lite-mark-core/discussions)
-

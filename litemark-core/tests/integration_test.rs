@@ -1,6 +1,28 @@
 use image::{DynamicImage, ImageFormat, Rgb, RgbImage};
 use litemark_core::{exif, image_io, layout, renderer::WatermarkRenderer};
 use std::collections::HashMap;
+use std::fs;
+use std::path::Path;
+
+#[derive(Debug, Deserialize)]
+struct CustomerRegressionSuite {
+    cases: Vec<CustomerRegressionCase>,
+}
+
+#[derive(Debug, Deserialize)]
+struct CustomerRegressionCase {
+    id: String,
+    template: String,
+    variables: HashMap<String, String>,
+    expected: String,
+}
+
+fn load_customer_regressions() -> CustomerRegressionSuite {
+    let path =
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/customer_regressions.json");
+    let content = fs::read_to_string(path).expect("Failed to read customer regressions file");
+    serde_json::from_str(&content).expect("Failed to parse customer regressions file")
+}
 
 #[test]
 fn test_image_encode_decode_roundtrip() {
@@ -87,8 +109,12 @@ fn test_template_builtin() {
     assert!(templates.iter().any(|t| t.name == "Modern"));
     assert!(templates.iter().any(|t| t.name == "Minimal"));
 
-    // 验证 ClassicParam 模板
-    let classic = templates.iter().find(|t| t.name == "ClassicParam").unwrap();
+    assert!(!templates.is_empty());
+    assert!(templates.iter().any(|t| t.name == "Classic"));
+    assert!(templates.iter().any(|t| t.name == "Compact"));
+    assert!(templates.iter().any(|t| t.name == "Professional"));
+
+    let classic = templates.iter().find(|t| t.name == "Classic").unwrap();
     assert_eq!(classic.items.len(), 3); // Logo + 2个文本项
 }
 
@@ -211,7 +237,10 @@ fn test_full_watermark_pipeline() {
 
     // 加载模板
     let templates = layout::create_builtin_templates();
-    let template = &templates[0]; // ClassicParam
+    let template = templates
+        .iter()
+        .find(|t| t.name == "Classic")
+        .expect("Classic template not found");
 
     // 创建渲染器
     let renderer = WatermarkRenderer::new().expect("Failed to create renderer");
@@ -264,4 +293,34 @@ fn test_exif_from_empty_bytes() {
     let exif_data = result.unwrap();
     assert!(exif_data.iso.is_none());
     assert!(exif_data.camera_model.is_none());
+}
+
+#[test]
+fn test_customer_regression_suite() {
+    let suite = load_customer_regressions();
+
+    for case in suite.cases {
+        let template = layout::Template {
+            name: case.id.clone(),
+            anchor: layout::Anchor::BottomLeft,
+            padding: 0,
+            items: vec![layout::TemplateItem {
+                item_type: layout::ItemType::Text,
+                value: case.template.clone(),
+                font_size: 16,
+                font_size_ratio: 0.20,
+                weight: Some(layout::FontWeight::Normal),
+                color: Some("#000000".to_string()),
+            }],
+            background: None,
+            frame_height_ratio: 0.10,
+            logo_size_ratio: 0.35,
+            primary_font_ratio: 0.20,
+            secondary_font_ratio: 0.14,
+            padding_ratio: 0.10,
+        };
+
+        let rendered = template.substitute_variables(&case.variables);
+        assert_eq!(rendered.items[0].value, case.expected, "case: {}", case.id);
+    }
 }

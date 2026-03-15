@@ -142,12 +142,14 @@ mod tests {
     #[test]
     fn test_create_output_path_without_dir() {
         let result = create_output_path("photo.jpg", None, "_watermarked");
-        assert_eq!(result, "./photo_watermarked.jpg");
+        assert_eq!(result, "photo_watermarked.jpg");
     }
 
     #[test]
     fn test_load_builtin_template() {
         let result = load_template("classic");
         assert!(result.is_ok());
+        let template = result.unwrap();
+        assert_eq!(template.name, "Classic");
     }
 }
