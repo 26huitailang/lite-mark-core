@@ -57,8 +57,7 @@ export LITEMARK_FONT="/path/to/NotoSansCJK-Regular.ttc"
 
 ## Documentation
 
-- [Architecture](docs/ARCHITECTURE.md) - Technical design and rendering principles
-- [Development](docs/DEVELOPMENT.md) - Setup and contribution guidelines
+- [Architecture](litemark-core/ARCHITECTURE.md) - Technical design and rendering principles
 - [Chinese Font Guide](examples/chinese_font_guide.md) - Chinese font configuration
 - [Project Roadmap](plan.md) - Future plans and milestones
 

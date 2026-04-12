@@ -2,23 +2,22 @@
 
 ## 项目概述
 
-LiteMark 是一个 Rust 照片水印处理工具，为照片添加参数边框（EXIF 数据）。支持 CLI、WASM 和潜在的 iOS 集成。
+LiteMark 是一个 Rust 照片水印处理工具，为照片添加参数边框（EXIF 数据）。支持 CLI、WASM 和 iOS 集成。
 
 ## 技术栈
 
 - **语言**: Rust (Edition 2024, 1.70+)
-- **图像处理**: `image` crate
-- **字体渲染**: `rusttype` + 嵌入式 DejaVu Sans
+- **图像处理**: `image` + `libheif-rs` (HEIC)
+- **字体渲染**: `rusttype` + 嵌入式字体
 - **EXIF 解析**: `kamadak-exif`
 - **CLI**: `clap`
 - **并行处理**: `rayon`
-- **错误处理**: `anyhow` + `thiserror`
 
 ## 项目结构
 
 ```
 lite-mark-core/                 # Workspace 根目录
-├── litemark-core/              # 核心库（平台无关）
+├── litemark-core/              # 核心库（平台无关，纯内存 API）
 │   ├── src/exif.rs             # EXIF 数据提取
 │   ├── src/layout.rs           # 模板引擎
 │   ├── src/renderer.rs         # 水印渲染
@@ -26,9 +25,10 @@ lite-mark-core/                 # Workspace 根目录
 ├── litemark-cli/               # 命令行工具
 ├── litemark-wasm/              # WASM 绑定
 ├── templates/                  # JSON 模板文件
-├── assets/                     # 字体和 Logo 资源
-└── Makefile                    # 常用任务
+└── assets/                     # 字体和 Logo 资源
 ```
+
+详细架构见 `litemark-core/ARCHITECTURE.md`。
 
 ## 核心设计原则
 
@@ -42,7 +42,7 @@ lite-mark-core/                 # Workspace 根目录
 # 构建
 cargo build --workspace
 
-# 测试（排除 WASM）
+# 测试
 cargo test --workspace --exclude litemark-wasm
 
 # 发布构建

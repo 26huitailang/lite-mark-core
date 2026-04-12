@@ -215,4 +215,4 @@ litemark add -i photo.jpg -o out.jpg --author "我的签名"
 
 - [kamadak-exif 文档](https://docs.rs/kamadak-exif/)
 - [EXIF 标准规范](https://www.exif.org/)
-- [LiteMark 架构文档](../docs/ARCHITECTURE.md)
+- [LiteMark 架构文档](../litemark-core/ARCHITECTURE.md)

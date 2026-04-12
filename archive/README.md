@@ -19,4 +19,4 @@
 - ✅ Core/CLI 分层架构
 - ✅ 完整单元测试
 
-请查阅 [../README.md](../README.md) 和 [../docs/](../docs/) 获取最新文档。
+请查阅 [../README.md](../README.md) 获取最新文档。

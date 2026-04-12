@@ -51,6 +51,5 @@
 
 ## 参考
 
-- [开发指南](docs/DEVELOPMENT.md)
-- [架构文档](docs/ARCHITECTURE.md)
+- [架构文档](litemark-core/ARCHITECTURE.md)
 - [历史文档](archive/)
