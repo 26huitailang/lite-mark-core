@@ -1,0 +1,84 @@
+name: Comprehensive Test Suite
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  # 单元测试 - 快速
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Run Unit Tests
+        run: cargo test -p litemark-test-suite --test unit -- --test-threads=8
+
+  # 集成测试
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Run Integration Tests
+        run: cargo test -p litemark-test-suite --test integration
+
+  # E2E 测试 - 多平台
+  e2e-tests:
+    name: E2E Tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Build CLI
+        run: cargo build -p litemark-cli --release
+      - name: Run E2E Tests
+        run: cargo test -p litemark-test-suite --test e2e
+
+  # 视觉报告生成
+  visual-report:
+    name: Generate Visual Report
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Build CLI
+        run: cargo build -p litemark-cli --release
+      - name: Generate Visual Report
+        run: cargo run -p litemark-test-suite --bin generate-report
+      - name: Upload Visual Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-report
+          path: target/test-reports/latest/
+          retention-days: 7
+
+  # 健康检查
+  health-check:
+    name: Test Suite Health Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Run Health Check
+        run: cargo run -p litemark-test-suite --bin health-check

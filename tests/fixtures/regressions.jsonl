@@ -1,0 +1,1 @@
+{"id": "R001", "description": "基本变量替换", "template": "{Author}", "variables": {"Author": "Test"}, "expected": {"success": true, "output_contains": "Test"}}

@@ -1,0 +1,49 @@
+[package]
+name = "litemark-test-suite"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+litemark-core = { path = "../litemark-core" }
+litemark-cli = { path = "../litemark-cli" }
+image = { version = "0.24", default-features = false, features = ["png", "jpeg", "webp"] }
+tokio = { version = "1", features = ["rt", "macros", "process"] }
+serde_json = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+tempfile = "3.8"
+assert_cmd = "2.0"
+predicates = "3.0"
+similar = "2.4"
+crc32fast = "1.3"
+walkdir = "2.4"
+tera = "1.19"
+chrono = "0.4"
+anyhow = "1.0"
+
+[dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
+
+[[bin]]
+name = "generate-test-images"
+path = "src/bin/generate_test_images.rs"
+
+[[bin]]
+name = "generate-report"
+path = "src/bin/generate_report.rs"
+
+[[bin]]
+name = "health-check"
+path = "src/bin/health_check.rs"
+
+[[test]]
+name = "unit"
+path = "src/unit/mod.rs"
+
+[[test]]
+name = "integration"
+path = "src/integration/mod.rs"
+
+[[test]]
+name = "e2e"
+path = "src/e2e/mod.rs"

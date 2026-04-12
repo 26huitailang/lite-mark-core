@@ -253,13 +253,13 @@ impl WatermarkRenderer {
         let logo_height = (height as f32 / 3.0) as u32;
         let estimated_logo_width = (logo_height as f32 * 2.5) as u32;
 
-        // Right-aligned columns
-        let column4_x_end = width - padding;
+        // Right-aligned columns (use saturating_sub to prevent overflow on tiny images)
+        let column4_x_end = width.saturating_sub(padding);
         let estimated_column4_width = (width / 3) as u32;
-        let column4_x = column4_x_end - estimated_column4_width;
+        let column4_x = column4_x_end.saturating_sub(estimated_column4_width);
 
-        let separator_x = column4_x - padding * 3;
-        let logo_center_x = separator_x - padding * 3 - estimated_logo_width / 2;
+        let separator_x = column4_x.saturating_sub(padding * 3);
+        let logo_center_x = separator_x.saturating_sub(padding * 3).saturating_sub(estimated_logo_width / 2);
 
         // Render Column 1: Author, Camera, Date (left side)
         let mut current_y = frame_y + padding * 2;

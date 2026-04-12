@@ -1,5 +1,6 @@
 use image::{DynamicImage, ImageFormat, Rgb, RgbImage};
 use litemark_core::{exif, image_io, layout, renderer::WatermarkRenderer};
+use serde::Deserialize;
 use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
