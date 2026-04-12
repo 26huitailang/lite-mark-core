@@ -15,7 +15,6 @@ pub fn process_single_image(
 
     // Read image file to bytes
     let image_bytes = std::fs::read(input_path)?;
-
     // Decode image using Core
     let mut image = image_io::decode_image(&image_bytes)?;
     println!("Loaded image: {}x{}", image.width(), image.height());
@@ -61,7 +60,6 @@ pub fn process_single_image(
 
     // Create renderer with font bytes
     let renderer = WatermarkRenderer::from_font_bytes(font_bytes.as_deref())?;
-
     // Render watermark with logo bytes
     renderer.render_watermark_with_logo_bytes(
         &mut image,

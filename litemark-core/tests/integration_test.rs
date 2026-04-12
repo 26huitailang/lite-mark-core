@@ -1,6 +1,28 @@
-use litemark_core::{image_io, exif, layout, renderer::WatermarkRenderer};
-use image::{ImageFormat, DynamicImage, Rgb, RgbImage};
+use image::{DynamicImage, ImageFormat, Rgb, RgbImage};
+use litemark_core::{exif, image_io, layout, renderer::WatermarkRenderer};
 use std::collections::HashMap;
+use std::fs;
+use std::path::Path;
+
+#[derive(Debug, Deserialize)]
+struct CustomerRegressionSuite {
+    cases: Vec<CustomerRegressionCase>,
+}
+
+#[derive(Debug, Deserialize)]
+struct CustomerRegressionCase {
+    id: String,
+    template: String,
+    variables: HashMap<String, String>,
+    expected: String,
+}
+
+fn load_customer_regressions() -> CustomerRegressionSuite {
+    let path =
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/customer_regressions.json");
+    let content = fs::read_to_string(path).expect("Failed to read customer regressions file");
+    serde_json::from_str(&content).expect("Failed to parse customer regressions file")
+}
 
 #[test]
 fn test_image_encode_decode_roundtrip() {
@@ -14,25 +36,23 @@ fn test_image_encode_decode_roundtrip() {
     }));
 
     // 编码为 JPEG
-    let jpeg_data = image_io::encode_image(&test_image, ImageFormat::Jpeg)
-        .expect("Failed to encode image");
+    let jpeg_data =
+        image_io::encode_image(&test_image, ImageFormat::Jpeg).expect("Failed to encode image");
     assert!(!jpeg_data.is_empty());
     assert!(jpeg_data.len() > 100);
 
     // 解码
-    let decoded = image_io::decode_image(&jpeg_data)
-        .expect("Failed to decode image");
+    let decoded = image_io::decode_image(&jpeg_data).expect("Failed to decode image");
     assert_eq!(decoded.width(), 200);
     assert_eq!(decoded.height(), 150);
 
     // 编码为 PNG
-    let png_data = image_io::encode_image(&test_image, ImageFormat::Png)
-        .expect("Failed to encode as PNG");
+    let png_data =
+        image_io::encode_image(&test_image, ImageFormat::Png).expect("Failed to encode as PNG");
     assert!(!png_data.is_empty());
 
     // 验证 PNG 数据也是有效的
-    let png_decoded = image_io::decode_image(&png_data)
-        .expect("Failed to decode PNG");
+    let png_decoded = image_io::decode_image(&png_data).expect("Failed to decode PNG");
     assert_eq!(png_decoded.width(), 200);
     assert_eq!(png_decoded.height(), 150);
 }
@@ -55,8 +75,14 @@ fn test_exif_data_conversion() {
     assert_eq!(variables.get("Shutter"), Some(&"1/200".to_string()));
     assert_eq!(variables.get("Focal"), Some(&"85mm".to_string()));
     assert_eq!(variables.get("Camera"), Some(&"Nikon Z9".to_string()));
-    assert_eq!(variables.get("Lens"), Some(&"NIKKOR Z 85mm f/1.8 S".to_string()));
-    assert_eq!(variables.get("Author"), Some(&"Test Photographer".to_string()));
+    assert_eq!(
+        variables.get("Lens"),
+        Some(&"NIKKOR Z 85mm f/1.8 S".to_string())
+    );
+    assert_eq!(
+        variables.get("Author"),
+        Some(&"Test Photographer".to_string())
+    );
 }
 
 #[test]
@@ -77,14 +103,18 @@ fn test_exif_missing_fields() {
 #[test]
 fn test_template_builtin() {
     let templates = layout::create_builtin_templates();
-    
+
     assert!(!templates.is_empty());
     assert!(templates.iter().any(|t| t.name == "ClassicParam"));
     assert!(templates.iter().any(|t| t.name == "Modern"));
     assert!(templates.iter().any(|t| t.name == "Minimal"));
 
-    // 验证 ClassicParam 模板
-    let classic = templates.iter().find(|t| t.name == "ClassicParam").unwrap();
+    assert!(!templates.is_empty());
+    assert!(templates.iter().any(|t| t.name == "Classic"));
+    assert!(templates.iter().any(|t| t.name == "Compact"));
+    assert!(templates.iter().any(|t| t.name == "Professional"));
+
+    let classic = templates.iter().find(|t| t.name == "Classic").unwrap();
     assert_eq!(classic.items.len(), 3); // Logo + 2个文本项
 }
 
@@ -139,16 +169,14 @@ fn test_template_json_serialization() {
         name: "CustomTest".to_string(),
         anchor: layout::Anchor::TopRight,
         padding: 15,
-        items: vec![
-            layout::TemplateItem {
-                item_type: layout::ItemType::Text,
-                value: "{Author}".to_string(),
-                font_size: 18,
-                font_size_ratio: 0.25,
-                weight: Some(layout::FontWeight::Bold),
-                color: Some("#FFFFFF".to_string()),
-            },
-        ],
+        items: vec![layout::TemplateItem {
+            item_type: layout::ItemType::Text,
+            value: "{Author}".to_string(),
+            font_size: 18,
+            font_size_ratio: 0.25,
+            weight: Some(layout::FontWeight::Bold),
+            color: Some("#FFFFFF".to_string()),
+        }],
         background: None,
         frame_height_ratio: 0.12,
         logo_size_ratio: 0.4,
@@ -173,11 +201,17 @@ fn test_template_json_serialization() {
 fn test_renderer_creation() {
     // 测试默认字体
     let renderer = WatermarkRenderer::new();
-    assert!(renderer.is_ok(), "Failed to create renderer with default font");
+    assert!(
+        renderer.is_ok(),
+        "Failed to create renderer with default font"
+    );
 
     // 测试空字体数据
     let renderer = WatermarkRenderer::from_font_bytes(None);
-    assert!(renderer.is_ok(), "Failed to create renderer with None font data");
+    assert!(
+        renderer.is_ok(),
+        "Failed to create renderer with None font data"
+    );
 }
 
 #[test]
@@ -203,7 +237,10 @@ fn test_full_watermark_pipeline() {
 
     // 加载模板
     let templates = layout::create_builtin_templates();
-    let template = &templates[0]; // ClassicParam
+    let template = templates
+        .iter()
+        .find(|t| t.name == "Classic")
+        .expect("Classic template not found");
 
     // 创建渲染器
     let renderer = WatermarkRenderer::new().expect("Failed to create renderer");
@@ -219,12 +256,18 @@ fn test_full_watermark_pipeline() {
     assert!(result.is_ok(), "Watermark rendering failed");
 
     // 验证图像尺寸增加了边框
-    assert!(test_image.height() > original_height, "Image height should increase after adding watermark");
+    assert!(
+        test_image.height() > original_height,
+        "Image height should increase after adding watermark"
+    );
 
     // 验证可以编码
     let encoded = image_io::encode_image(&test_image, ImageFormat::Jpeg);
     assert!(encoded.is_ok(), "Failed to encode watermarked image");
-    assert!(!encoded.unwrap().is_empty(), "Encoded data should not be empty");
+    assert!(
+        !encoded.unwrap().is_empty(),
+        "Encoded data should not be empty"
+    );
 }
 
 #[test]
@@ -244,10 +287,40 @@ fn test_detect_image_format() {
 fn test_exif_from_empty_bytes() {
     let empty_data: &[u8] = &[];
     let result = exif::extract_from_bytes(empty_data);
-    
+
     // 应该返回空的 ExifData 而不是错误
     assert!(result.is_ok());
     let exif_data = result.unwrap();
     assert!(exif_data.iso.is_none());
     assert!(exif_data.camera_model.is_none());
+}
+
+#[test]
+fn test_customer_regression_suite() {
+    let suite = load_customer_regressions();
+
+    for case in suite.cases {
+        let template = layout::Template {
+            name: case.id.clone(),
+            anchor: layout::Anchor::BottomLeft,
+            padding: 0,
+            items: vec![layout::TemplateItem {
+                item_type: layout::ItemType::Text,
+                value: case.template.clone(),
+                font_size: 16,
+                font_size_ratio: 0.20,
+                weight: Some(layout::FontWeight::Normal),
+                color: Some("#000000".to_string()),
+            }],
+            background: None,
+            frame_height_ratio: 0.10,
+            logo_size_ratio: 0.35,
+            primary_font_ratio: 0.20,
+            secondary_font_ratio: 0.14,
+            padding_ratio: 0.10,
+        };
+
+        let rendered = template.substitute_variables(&case.variables);
+        assert_eq!(rendered.items[0].value, case.expected, "case: {}", case.id);
+    }
 }

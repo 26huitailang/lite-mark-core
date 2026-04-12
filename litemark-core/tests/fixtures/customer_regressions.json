@@ -1,0 +1,30 @@
+{
+  "cases": [
+    {
+      "id": "unicode_author_and_camera",
+      "template": "{Author} · {Camera}",
+      "variables": {
+        "Author": "张三",
+        "Camera": "Fujifilm X-T5"
+      },
+      "expected": "张三 · Fujifilm X-T5"
+    },
+    {
+      "id": "missing_variable_keeps_placeholder",
+      "template": "{Author} | ISO {ISO} | {Shutter}",
+      "variables": {
+        "Author": "Client A",
+        "ISO": "400"
+      },
+      "expected": "Client A | ISO 400 | {Shutter}"
+    },
+    {
+      "id": "repeated_variable_replaced_everywhere",
+      "template": "{Author} / © {Author}",
+      "variables": {
+        "Author": "Studio Name"
+      },
+      "expected": "Studio Name / © Studio Name"
+    }
+  ]
+}
