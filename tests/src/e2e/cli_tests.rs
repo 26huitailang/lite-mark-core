@@ -14,7 +14,7 @@ fn test_cli_help() {
     cmd.arg("--help");
     cmd.assert()
         .success()
-        .stdout(predicate::str::contains("LiteMark"));
+        .stdout(predicate::str::contains("litemark-cli"));
 }
 
 /// 测试 CLI 版本信息
