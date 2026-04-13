@@ -5,12 +5,12 @@
 ## 当前状态
 
 - ✅ `unit` 测试已通过 (54/54)
-- ❌ `integration` 测试存在编译错误
+- ✅ `integration` 测试已通过 (22/22)
 - ❌ `e2e` 测试待验证
 
 ## 待办列表
 
-### 1. 修复 integration 测试编译错误 (regression_tests.rs 类型不匹配) 🔴
+### 1. 修复 integration 测试编译错误 (regression_tests.rs 类型不匹配) ✅
 
 **问题描述**:
 ```
@@ -19,9 +19,9 @@ regression_tests.rs:240-243  类型不匹配
   - Focal 期望 u32，但传入 f64 (24.0, 200.0)
 ```
 
-**修复建议**:
-- 检查 `ExifData` 结构体的字段类型定义
-- 修改测试用例中的类型，或调整结构体定义
+**修复内容**:
+- 统一 test_cases 中的类型为 f64 避免类型推断错误
+- 重构 `test_exif_formatting_regression` 测试，为每种字段正确设置不同的测试值
 
 ---
 
@@ -63,7 +63,7 @@ cargo fix --test e2e
 
 ## 完成标准
 
-- [ ] `cargo test -p litemark-test-suite` 本地全部通过
+- [x] `cargo test -p litemark-test-suite` 本地全部通过 (unit + integration)
 - [ ] GitHub Actions CI 测试通过
 - [ ] 无编译错误和警告（或警告被合理处理）
 

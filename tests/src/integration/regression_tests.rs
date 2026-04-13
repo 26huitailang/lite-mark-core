@@ -234,36 +234,51 @@ fn run_regression_case(case: &RegressionCase) -> Result<(), String> {
 /// 测试 EXIF 数据格式化回归
 #[test]
 fn test_exif_formatting_regression() {
-    let test_cases = vec![
-        ("ISO", 100u32, "100"),
-        ("ISO", 6400, "6400"),
-        ("Aperture", 1.4f64, "f/1.4"),
-        ("Aperture", 22.0, "f/22.0"),
-        ("Focal", 24.0f64, "24mm"),
-        ("Focal", 200.0, "200mm"),
-    ];
-
-    for (field, _, expected_suffix) in test_cases {
+    // 测试 ISO 格式化
+    {
         let mut data = ExifData::new();
-
-        match field {
-            "ISO" => data.iso = Some(100),
-            "Aperture" => data.aperture = Some(1.4),
-            "Focal" => data.focal_length = Some(24.0),
-            _ => {}
-        }
-
+        data.iso = Some(100);
         let vars = data.to_variables();
-        let value = vars.get(field).expect(&format!("应有 {} 变量", field));
+        assert_eq!(vars.get("ISO"), Some(&"100".to_string()));
+    }
+    {
+        let mut data = ExifData::new();
+        data.iso = Some(6400);
+        let vars = data.to_variables();
+        assert_eq!(vars.get("ISO"), Some(&"6400".to_string()));
+    }
 
-        assert!(
-            value.contains(expected_suffix) || expected_suffix.contains(value),
-            "{} 应包含 '{}' 或 '{}' 应包含 '{}'",
-            field,
-            expected_suffix,
-            expected_suffix,
-            value
-        );
+    // 测试光圈格式化
+    {
+        let mut data = ExifData::new();
+        data.aperture = Some(1.4);
+        let vars = data.to_variables();
+        let value = vars.get("Aperture").expect("应有 Aperture 变量");
+        assert!(value.contains("f/1.4"), "光圈应格式化为 f/1.4，实际是 {}", value);
+    }
+    {
+        let mut data = ExifData::new();
+        data.aperture = Some(22.0);
+        let vars = data.to_variables();
+        let value = vars.get("Aperture").expect("应有 Aperture 变量");
+        assert!(value.contains("f/22") || value.contains("f/22.0"), 
+                "光圈应格式化为 f/22 或 f/22.0，实际是 {}", value);
+    }
+
+    // 测试焦距格式化
+    {
+        let mut data = ExifData::new();
+        data.focal_length = Some(24.0);
+        let vars = data.to_variables();
+        let value = vars.get("Focal").expect("应有 Focal 变量");
+        assert!(value.contains("24mm"), "焦距应格式化为 24mm，实际是 {}", value);
+    }
+    {
+        let mut data = ExifData::new();
+        data.focal_length = Some(200.0);
+        let vars = data.to_variables();
+        let value = vars.get("Focal").expect("应有 Focal 变量");
+        assert!(value.contains("200mm"), "焦距应格式化为 200mm，实际是 {}", value);
     }
 }
 
