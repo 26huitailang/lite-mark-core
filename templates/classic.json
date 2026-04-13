@@ -20,20 +20,20 @@
             "value": "{Author}",
             "font_size_ratio": 0.20,
             "weight": "bold",
-            "color": "#FFFFFF"
+            "color": "#333333"
         },
         {
             "type": "text",
             "value": "{Aperture} | ISO {ISO} | {Shutter}",
             "font_size_ratio": 0.14,
             "weight": "normal",
-            "color": "#FFFFFF"
+            "color": "#666666"
         }
     ],
     "background": {
         "type": "rect",
         "opacity": 0.3,
         "radius": 6,
-        "color": "#000000"
+        "color": "#F5F5F5"
     }
 }
