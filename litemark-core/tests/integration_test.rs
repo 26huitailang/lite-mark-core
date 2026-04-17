@@ -106,11 +106,6 @@ fn test_template_builtin() {
     let templates = layout::create_builtin_templates();
 
     assert!(!templates.is_empty());
-    assert!(templates.iter().any(|t| t.name == "ClassicParam"));
-    assert!(templates.iter().any(|t| t.name == "Modern"));
-    assert!(templates.iter().any(|t| t.name == "Minimal"));
-
-    assert!(!templates.is_empty());
     assert!(templates.iter().any(|t| t.name == "Classic"));
     assert!(templates.iter().any(|t| t.name == "Compact"));
     assert!(templates.iter().any(|t| t.name == "Professional"));

@@ -119,12 +119,16 @@ impl ExifData {
 /// * `Err` - 解析错误
 ///
 /// # Examples
-/// ```
+/// ```no_run
+/// use litemark_core::exif::extract_from_bytes;
+/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// let image_bytes = std::fs::read("photo.jpg")?;
 /// let exif_data = extract_from_bytes(&image_bytes)?;
 /// if let Some(iso) = exif_data.iso {
 ///     println!("ISO: {}", iso);
 /// }
+/// # Ok(())
+/// # }
 /// ```
 pub fn extract_from_bytes(image_data: &[u8]) -> Result<ExifData, Box<dyn std::error::Error>> {
     let mut cursor = Cursor::new(image_data);

@@ -33,13 +33,17 @@ impl WatermarkRenderer {
     /// * `font_data` - 字体文件的字节数据，None 表示使用默认字体
     ///
     /// # Examples
-    /// ```
+    /// ```no_run
+    /// use litemark_core::WatermarkRenderer;
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// // 使用自定义字体
     /// let font_bytes = std::fs::read("custom.ttf")?;
     /// let renderer = WatermarkRenderer::from_font_bytes(Some(&font_bytes))?;
     ///
     /// // 使用默认字体
     /// let renderer = WatermarkRenderer::from_font_bytes(None)?;
+    /// # Ok(())
+    /// # }
     /// ```
     pub fn from_font_bytes(font_data: Option<&[u8]>) -> Result<Self, Box<dyn std::error::Error>> {
         let font = if let Some(data) = font_data {
@@ -107,7 +111,7 @@ impl WatermarkRenderer {
 
         // Calculate frame height with min/max bounds
         let calculated_frame_height = (short_edge * frame_height_ratio) as u32;
-        let bottom_frame_height = calculated_frame_height.clamp(80, 800); // Min 80px, Max 800px
+        let bottom_frame_height = calculated_frame_height.max(80); // Min 80px
 
         // Create new canvas with frame
         let new_width = original_width;
@@ -219,7 +223,7 @@ impl WatermarkRenderer {
                         frame_height_f32 * original_template.secondary_font_ratio
                     };
 
-                    let font_size = font_size.max(10.0).min(100.0);
+                    let font_size = font_size.max(10.0);
 
                     // Classify into columns
                     let is_left_column = left_priority.iter().any(|&var| {
@@ -246,7 +250,7 @@ impl WatermarkRenderer {
 
         // Calculate padding
         let padding = (frame_height_f32 * original_template.padding_ratio) as u32;
-        let padding = padding.max(5).min(50);
+        let padding = padding.max(5);
 
         // Layout parameters
         let column1_x = padding;
