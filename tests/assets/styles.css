@@ -240,6 +240,17 @@ main {
     font-family: "SF Mono", monospace;
 }
 
+/* Metrics table highlight */
+.metrics-table td.key {
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+.metrics-table td.value {
+    font-weight: 600;
+    color: var(--text-color);
+}
+
 /* Footer */
 footer {
     text-align: center;

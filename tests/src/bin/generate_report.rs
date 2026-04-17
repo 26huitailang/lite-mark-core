@@ -28,12 +28,31 @@ struct TestCaseResult {
     duration_ms: u64,
 }
 
+/// 渲染指标（用于验证分辨率缩放修复）
+#[derive(Serialize)]
+struct RenderMetrics {
+    /// 实际边框高度 (px)
+    bottom_frame_height: u32,
+    /// 主字体大小 (px)
+    primary_font_size: f32,
+    /// 次字体大小 (px)
+    secondary_font_size: f32,
+    /// 内边距 (px)
+    padding: u32,
+    /// 短边长度 (px)
+    short_edge: u32,
+    /// 使用的 frame_height_ratio
+    frame_height_ratio: f32,
+}
+
 /// 测试用例元数据
 #[derive(Serialize)]
 struct TestCaseMetadata {
     template_json: String,
     exif_data: HashMap<String, String>,
     variables: HashMap<String, String>,
+    /// 实际渲染尺寸指标
+    render_metrics: RenderMetrics,
 }
 
 /// 报告摘要
@@ -65,8 +84,8 @@ fn main() -> Result<()> {
     for (template_idx, (template_name, template)) in templates.iter().enumerate() {
         println!("\n处理模板 {}: {}", template_idx + 1, template_name);
 
-        // 生成不同尺寸的测试用例
-        let sizes = vec![(800, 600), (1920, 1080), (1024, 1024)];
+        // 生成不同尺寸的测试用例（包含高分辨率以验证上限移除修复）
+        let sizes = vec![(800, 600), (1920, 1080), (1024, 1024), (6000, 4000)];
 
         for (idx, (width, height)) in sizes.iter().enumerate() {
             let case_id = format!("TC{:03}", template_idx * 10 + idx + 1);
@@ -115,6 +134,14 @@ fn main() -> Result<()> {
                             template_json: String::new(),
                             exif_data: HashMap::new(),
                             variables: HashMap::new(),
+                            render_metrics: RenderMetrics {
+                                bottom_frame_height: 0,
+                                primary_font_size: 0.0,
+                                secondary_font_size: 0.0,
+                                padding: 0,
+                                short_edge: 0,
+                                frame_height_ratio: 0.0,
+                            },
                         },
                         success: false,
                         duration_ms: duration,
@@ -171,6 +198,29 @@ fn create_report_directory() -> Result<PathBuf> {
     std::os::unix::fs::symlink(&report_dir, latest_link)?;
 
     Ok(report_dir)
+}
+
+/// 计算渲染指标（与 renderer.rs 中的计算逻辑保持一致）
+fn calculate_metrics(template: &Template, width: u32, height: u32) -> RenderMetrics {
+    let short_edge = width.min(height) as f32;
+    let frame_height_ratio = template.frame_height_ratio.clamp(0.05, 0.20);
+    let calculated_frame_height = (short_edge * frame_height_ratio) as u32;
+    let bottom_frame_height = calculated_frame_height.max(80);
+    let frame_height_f32 = bottom_frame_height as f32;
+
+    let primary_font_size = (frame_height_f32 * template.primary_font_ratio).max(10.0);
+    let secondary_font_size = (frame_height_f32 * template.secondary_font_ratio).max(10.0);
+    let padding = (frame_height_f32 * template.padding_ratio) as u32;
+    let padding = padding.max(5);
+
+    RenderMetrics {
+        bottom_frame_height,
+        primary_font_size,
+        secondary_font_size,
+        padding,
+        short_edge: short_edge as u32,
+        frame_height_ratio,
+    }
 }
 
 /// 加载测试模板
@@ -243,6 +293,9 @@ fn generate_test_case(
         .map_err(|e| anyhow::anyhow!("编码输出图像失败: {}", e))?;
     fs::write(&output_path, output_data)?;
 
+    // 计算渲染指标
+    let render_metrics = calculate_metrics(template, width, height);
+
     // 准备元数据
     let template_json = serde_json::to_string_pretty(template).unwrap_or_default();
 
@@ -260,6 +313,7 @@ fn generate_test_case(
         ]
         .into(),
         variables: variables.clone(),
+        render_metrics,
     };
 
     Ok((

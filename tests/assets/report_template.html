@@ -79,6 +79,38 @@
                         </tbody>
                     </table>
                 </details>
+
+                <details>
+                    <summary>📐 实际渲染尺寸</summary>
+                    <table class="metrics-table">
+                        <tbody>
+                            <tr>
+                                <td class="key">短边 (short_edge)</td>
+                                <td class="value">{{ case.metadata.render_metrics.short_edge }} px</td>
+                            </tr>
+                            <tr>
+                                <td class="key">边框高度 (frame_height)</td>
+                                <td class="value">{{ case.metadata.render_metrics.bottom_frame_height }} px</td>
+                            </tr>
+                            <tr>
+                                <td class="key">主字体大小</td>
+                                <td class="value">{{ case.metadata.render_metrics.primary_font_size | round(precision=1) }} px</td>
+                            </tr>
+                            <tr>
+                                <td class="key">次字体大小</td>
+                                <td class="value">{{ case.metadata.render_metrics.secondary_font_size | round(precision=1) }} px</td>
+                            </tr>
+                            <tr>
+                                <td class="key">内边距 (padding)</td>
+                                <td class="value">{{ case.metadata.render_metrics.padding }} px</td>
+                            </tr>
+                            <tr>
+                                <td class="key">高度比例 (ratio)</td>
+                                <td class="value">{{ case.metadata.render_metrics.frame_height_ratio }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </details>
             </div>
         </div>
         {% endfor %}
