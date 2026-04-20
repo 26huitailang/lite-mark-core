@@ -19,12 +19,15 @@
 │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐│
 │  │ image_io │  │   exif   │  │  layout  │  │ renderer ││
 │  └──────────┘  └──────────┘  └──────────┘  └──────────┘│
+│  ┌──────────┐                                            │
+│  │  error   │  ← 结构化错误类型 (thiserror)              │
+│  └──────────┘                                            │
 └─────────────────────────────────────────────────────────┘
                           │
                           ▼
 ┌─────────────────────────────────────────────────────────┐
 │                  External Dependencies                   │
-│    image, libheif-rs, rusttype, kamadak-exif, serde     │
+│    image, libheif-rs, ab_glyph, kamadak-exif, serde     │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -35,8 +38,8 @@
 **职责**：图像编解码，所有操作基于内存
 
 **关键函数**：
-- `decode_image(data: &[u8]) -> Result<DynamicImage>`
-- `encode_image(image: &DynamicImage, format: ImageFormat) -> Result<Vec<u8>>`
+- `decode_image(data: &[u8]) -> Result<DynamicImage, CoreError>`
+- `encode_image(image: &DynamicImage, format: ImageFormat) -> Result<Vec<u8>, CoreError>`
 - `detect_format(data: &[u8]) -> ImageFormat`
 
 **设计要点**：
@@ -68,7 +71,7 @@ pub struct ExifData {
 ```
 
 **关键函数**：
-- `extract_from_bytes(data: &[u8]) -> Result<ExifData>`
+- `extract_from_bytes(data: &[u8]) -> Result<ExifData, CoreError>`
 - `to_variables(&self) -> HashMap<String, String>`
 - `get_missing_fields(&self) -> Vec<String>`
 
@@ -90,25 +93,36 @@ pub struct ExifData {
 pub struct Template {
     pub name: String,
     pub anchor: Anchor,
+    pub padding: u32,
     pub items: Vec<TemplateItem>,
-    pub frame_height_ratio: f32,  // 边框高度比例
-    pub primary_font_ratio: f32,   // 主字体比例
-    pub secondary_font_ratio: f32, // 副字体比例
-    pub padding_ratio: f32,        // 边距比例
-    // ...
+    pub frame_height_ratio: f32,
+    pub logo_size_ratio: f32,
+    pub primary_font_ratio: f32,
+    pub secondary_font_ratio: f32,
+    pub padding_ratio: f32,
+    pub render_mode: RenderMode,  // 新增：渲染模式
+    pub background: Option<Background>,
+}
+
+pub enum RenderMode {
+    BottomFrame,    // 底部纯色框
+    GradientFrame,  // 底部渐变过渡
+    Minimal,        // 极简线条
+    Overlay,        // 照片内嵌叠加
 }
 ```
 
 **关键函数**：
-- `from_json(json: &str) -> Result<Template>`
-- `to_json(&self) -> Result<String>`
+- `from_json(json: &str) -> Result<Template, CoreError>`
+- `to_json(&self) -> Result<String, CoreError>`
 - `substitute_variables(&self, vars: &HashMap<String, String>) -> Template`
-- `create_builtin_templates() -> Vec<Template>`
+- `create_builtin_templates() -> Vec<Template>`（编译时嵌入 JSON）
 
 **设计要点**：
 - 完全基于比例的尺寸系统，适配任意分辨率
-- 内置模板硬编码，无需外部文件
+- 内置模板通过 `include_str!` 编译时嵌入，无需外部文件
 - JSON 序列化方便跨语言传递（Web、CLI）
+- 四种渲染模式通过 `render_mode` 字段控制
 
 **变量替换**：
 ```
@@ -124,25 +138,31 @@ pub struct Template {
 **核心类型**：
 ```rust
 pub struct WatermarkRenderer {
-    font: Font<'static>,
+    fonts: FontSet,
+}
+
+struct FontSet {
+    regular: FontRef<'static>,
+    bold: Option<FontRef<'static>>,
 }
 ```
 
 **关键函数**：
-- `new() -> Result<Self>`（默认字体）
-- `from_font_bytes(data: Option<&[u8]>) -> Result<Self>`（自定义字体）
-- `render_watermark_with_logo_bytes(...) -> Result<()>`
+- `new() -> Result<Self, CoreError>`（默认字体）
+- `from_font_bytes(regular: Option<&[u8]>) -> Result<Self, CoreError>`（自定义字体）
+- `from_font_bytes_with_bold(regular, bold) -> Result<Self, CoreError>`（多字重）
+- `render_watermark_with_logo_bytes(...) -> Result<(), CoreError>`
 
 **渲染流程**：
 ```
-1. 计算边框尺寸（基于短边 × frame_height_ratio）
-2. 扩展画布（原图高度 + 边框高度）
-3. 复制原图到上部
-4. 绘制白色边框背景
-5. 分类文本项（左栏 vs 右栏）
-6. 渲染 Logo（可选）
-7. 渲染文本（rusttype 矢量字体）
-8. 绘制分隔线
+1. 变量替换（substitute_variables）
+2. 按 render_mode 分发：
+   - BottomFrame: 扩展画布 → 白底框 → 内容渲染
+   - GradientFrame: 扩展画布 → 渐变背景 → 内容渲染
+   - Minimal: 扩展画布 → 细线 → 内容渲染
+   - Overlay: 不扩展画布 → 右下角半透明背景 → 文字叠加
+3. 文本渲染（ab_glyph 矢量字体，支持多字重）
+4. Logo 渲染（双线性插值缩放）
 ```
 
 **布局策略**（四列布局）：
@@ -154,35 +174,65 @@ pub struct WatermarkRenderer {
 │ 相机型号 │        │░░│ 焦距: 50mm                       │
 │ 日期时间 │        │░░│                                  │
 └──────────┴────────┴──┴─────────────────────────────────┘
-  Column 1  Column 2  3   Column 4
+  Column 1  Column 2  3   Column 4（右对齐）
 ```
 
 **字体渲染**：
 - 默认嵌入思源黑体（compile-time `include_bytes!`）
-- 支持运行时注入自定义字体字节数据
-- 使用 rusttype 进行矢量渲染
-- 抗锯齿处理，alpha 阈值 > 10
+- 支持运行时注入自定义字体字节数据（常规体 + 粗体）
+- 使用 `ab_glyph` 进行矢量渲染（rusttype 的继任者）
+- 字重通过 `FontWeight` 选择：Normal / Bold / Light
+- 抗锯齿处理，alpha 混合
 
 **Logo 渲染**：
 - 从字节数据加载（`image::load_from_memory`）
-- 保持纵横比缩放至目标高度
+- 保持纵横比缩放至目标高度（双线性插值）
 - Alpha 通道混合（支持透明背景）
 - 失败时静默跳过（不中断流程）
+
+### 5. error 模块（新增）
+
+**职责**：结构化错误类型，替代 `Box<dyn Error>`
+
+**核心类型**：
+```rust
+#[derive(Error, Debug)]
+pub enum CoreError {
+    #[error("图像处理错误: {0}")]
+    Image(#[from] ImageError),
+    #[error("EXIF 解析错误: {0}")]
+    Exif(#[from] ExifError),
+    #[error("字体错误: {0}")]
+    Font(#[from] FontError),
+    #[error("模板错误: {0}")]
+    Template(#[from] TemplateError),
+    #[error("渲染错误: {0}")]
+    Render(#[from] RenderError),
+}
+```
+
+**设计要点**：
+- 使用 `thiserror` 自动实现 `Error` trait
+- 调用方可精确匹配错误类型（`CoreError::Font` vs `CoreError::Render`）
+- 每个子模块有独立的错误枚举
+- `#[from]` 自动转换，保持 `?` 操作符的便利性
 
 ## 设计模式
 
 ### 1. Builder Pattern（隐式）
 
 ```rust
-WatermarkRenderer::new()                    // 默认配置
-WatermarkRenderer::from_font_bytes(Some(font)) // 自定义字体
+WatermarkRenderer::new()                                    // 默认配置
+WatermarkRenderer::from_font_bytes(Some(font))              // 自定义字体
+WatermarkRenderer::from_font_bytes_with_bold(reg, bold)     // 多字重
 ```
 
 ### 2. Strategy Pattern
 
-不同的图像格式（JPEG、PNG、HEIC）有不同的解码策略，但对外统一接口：
+不同的图像格式和渲染模式有独立的处理策略，但对外统一接口：
 ```rust
-decode_image(data) // 内部自动选择解码策略
+decode_image(data)          // 内部自动选择解码策略
+render_watermark_with_logo_bytes(image, template, ...)  // 内部按 render_mode 分发
 ```
 
 ### 3. Null Object Pattern
@@ -206,14 +256,16 @@ render_watermark_with_logo_bytes(image, template, variables, logo)
 ```rust
 // 嵌入字体：'static 生命周期
 let font_data = include_bytes!("../../assets/fonts/...");
+let font = FontRef::try_from_slice(font_data)?;
 
-// 自定义字体：泄漏到 'static（rusttype 要求）
+// 自定义字体：也泄漏到 'static（简化生命周期管理）
 let leaked: &'static [u8] = Box::leak(font_data.to_vec().into_boxed_slice());
+let font = FontRef::try_from_slice(leaked)?;
 ```
 
-**泄漏理由**：
-- rusttype 的 `Font` 需要 `'static` 生命周期
-- 字体数据在程序运行期间一直使用，泄漏是可接受的
+**注意**：
+- `ab_glyph` 的 `FontRef` 本身不需要 `'static`，但渲染器设计为长期复用
+- 自定义字体数据在程序运行期间一直使用，泄漏是可接受的
 - Web/WASM 场景下，整个模块会随着页面卸载而释放
 
 ### 图像数据流动
@@ -230,9 +282,9 @@ let leaked: &'static [u8] = Box::leak(font_data.to_vec().into_boxed_slice());
 
 ### 1. 传播式错误（Propagate）
 
-大部分函数返回 `Result<T, Box<dyn std::error::Error>>`，让调用者决定如何处理：
+大部分函数返回 `Result<T, CoreError>`，让调用者决定如何处理：
 ```rust
-pub fn decode_image(data: &[u8]) -> Result<DynamicImage, Box<dyn std::error::Error>>
+pub fn decode_image(data: &[u8]) -> Result<DynamicImage, CoreError>
 ```
 
 ### 2. 降级式错误（Degrade）
@@ -281,6 +333,16 @@ pub fn render_watermark_with_logo_bytes(&self, image: &mut DynamicImage, ...)
 let mut rgba_data = Vec::with_capacity((width * height * 4) as usize);
 ```
 
+### 4. 基准测试结果（Release 模式）
+
+| 分辨率 | 耗时 | 备注 |
+|--------|------|------|
+| 800×600 | ~0.94 ms | 小型图像 |
+| 1920×1080 | ~3.97 ms | 标准屏幕 |
+| 4000×3000 | ~23.4 ms | 高分辨率照片 |
+
+*目标 < 200ms 已大幅超越。*
+
 ## 测试策略
 
 ### 单元测试
@@ -292,16 +354,25 @@ let mut rgba_data = Vec::with_capacity((width * height * 4) as usize);
 
 ### 集成测试
 
-`tests/integration_test.rs` 包含：
-- 完整的端到端流程测试
-- 多模块协作测试
-- 真实场景模拟
+`tests/` 包含：
+- 完整的端到端流程测试（`pipeline_tests.rs`）
+- 多模块协作测试（`template_tests.rs`）
+- 回归测试（`regression_tests.rs`）
+- **视觉回归测试**（`visual_regression_tests.rs`，新增）
+
+### 视觉回归测试
+
+- 每个内置模板在 1920×1080 下生成参考图
+- CI 对比 PR 前后的像素差异
+- 允许 0.5% 像素容差（抗锯齿差异）
+- 更新参考图：`UPDATE_REFS=1 cargo test --test integration -- visual`
 
 ### 测试覆盖目标
 
 - 单元测试覆盖率 > 80%
 - 所有公开 API 都有集成测试
 - 边界条件和错误路径必须覆盖
+- 四种渲染模式都有视觉回归测试
 
 ## 平台兼容性
 
@@ -328,65 +399,33 @@ let mut rgba_data = Vec::with_capacity((width * height * 4) as usize);
 - 无文件系统（std::fs 不可用）
 - 内存限制（大图像需要分块处理）
 
-## 未来扩展点
-
-### 1. 新增水印风格
-
-在 `renderer` 中添加新的布局算法，保持接口不变：
-```rust
-impl WatermarkRenderer {
-    fn render_style_classic(...) { }
-    fn render_style_modern(...) { }  // 新增
-    fn render_style_minimal(...) { } // 新增
-}
-```
-
-### 2. 支持更多图像格式
-
-在 `image_io` 中添加新的解码器：
-```rust
-if is_heic_format(data) { ... }
-else if is_avif_format(data) { ... } // 新增
-else { ... }
-```
-
-### 3. GPU 加速渲染
-
-引入 `wgpu` 进行 GPU 加速（可选特性）：
-```rust
-#[cfg(feature = "gpu-acceleration")]
-mod gpu_renderer;
-```
-
-### 4. 增量渲染
-
-支持部分区域更新，降低内存占用：
-```rust
-pub fn render_watermark_region(
-    &self,
-    image: &mut DynamicImage,
-    region: Rect,
-    ...
-)
-```
-
 ## 版本演进
 
-### v0.2.0（当前）
+### v0.2.0（改造前）
 
 - ✅ 基于内存的 API
 - ✅ EXIF 字节流提取
 - ✅ 字体和 Logo 字节数组输入
 - ✅ 集成测试覆盖
+- ❌ `Box<dyn Error>` 错误处理
+- ❌ `rusttype` 字体引擎（已停止维护）
+- ❌ 仅支持底部白框一种渲染模式
+- ❌ 单字重字体
 
-### v0.3.0（计划）
+### v0.3.0（当前）
 
-- ⏳ WASM 绑定层
-- ⏳ 性能基准测试
-- ⏳ 更多内置模板
+- ✅ 结构化错误类型（`thiserror`）
+- ✅ `ab_glyph` 字体引擎（替代 `rusttype`）
+- ✅ 多字重字体支持（Regular + Bold）
+- ✅ 四种渲染模式（BottomFrame / GradientFrame / Minimal / Overlay）
+- ✅ 颜色 alpha 通道支持（`#RRGGBBAA`）
+- ✅ 右对齐与视觉层级排版
+- ✅ Logo 双线性插值缩放
+- ✅ 视觉回归测试 + 性能基准
+- ✅ WASM 编译通过
 
 ### v1.0.0（目标）
 
 - ⏳ 稳定的公开 API
-- ⏳ 完整的文档
-- ⏳ 生产级错误处理
+- ⏳ 完整的用户文档
+- ⏳ GPU 加速渲染（可选特性）
