@@ -3,7 +3,7 @@
 //! 使用 JSON Lines 格式定义回归测试用例
 
 use litemark_core::exif::ExifData;
-use litemark_core::layout::{self, Anchor, FontWeight, ItemType, Template, TemplateItem};
+use litemark_core::layout::{RenderMode, self, Anchor, FontWeight, ItemType, Template, TemplateItem};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
@@ -199,7 +199,8 @@ fn run_regression_case(case: &RegressionCase) -> Result<(), String> {
         logo_size_ratio: 0.35,
         primary_font_ratio: 0.2,
         secondary_font_ratio: 0.14,
-        padding_ratio: 0.1,
+        padding_ratio: 0.,
+        render_mode: RenderMode::BottomFrame,
     };
 
     // 执行变量替换
@@ -209,23 +210,21 @@ fn run_regression_case(case: &RegressionCase) -> Result<(), String> {
     // 验证结果
     if case.expected.success {
         // 验证输出包含预期内容
-        if let Some(ref expected_contains) = case.expected.output_contains {
-            if !output.contains(expected_contains) {
+        if let Some(ref expected_contains) = case.expected.output_contains
+            && !output.contains(expected_contains) {
                 return Err(format!(
                     "输出不包含 '{}', 实际输出: '{}'",
                     expected_contains, output
                 ));
             }
-        }
 
-        if let Some(ref expected_text) = case.expected.text_contains {
-            if !output.contains(expected_text) {
+        if let Some(ref expected_text) = case.expected.text_contains
+            && !output.contains(expected_text) {
                 return Err(format!(
                     "输出不包含 '{}', 实际输出: '{}'",
                     expected_text, output
                 ));
             }
-        }
     }
 
     Ok(())
@@ -292,17 +291,13 @@ fn test_builtin_templates_regression() {
 
     // 所有模板都应可序列化
     for template in &templates {
-        let json = template.to_json().expect(&format!(
-            "模板 '{}' 应可序列化",
-            template.name
-        ));
+        let json = template.to_json().unwrap_or_else(|_| panic!("模板 '{}' 应可序列化",
+            template.name));
         assert!(!json.is_empty());
 
         // 应可反序列化
-        let restored = Template::from_json(&json).expect(&format!(
-            "模板 '{}' 应可反序列化",
-            template.name
-        ));
+        let restored = Template::from_json(&json).unwrap_or_else(|_| panic!("模板 '{}' 应可反序列化",
+            template.name));
         assert_eq!(template.name, restored.name);
     }
 }

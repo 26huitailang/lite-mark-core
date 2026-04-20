@@ -115,7 +115,7 @@ fn test_decode_empty_data() {
 #[test]
 fn test_decode_invalid_data() {
     let invalid_data = vec![0xFF, 0xD8, 0x00, 0x00, 0x00, 0x00];
-    let result = litemark_core::image_io::decode_image(&invalid_data);
+    let _result = litemark_core::image_io::decode_image(&invalid_data);
     // 可能成功（JPEG 解析器可能忽略无效数据）或失败
     // 这里不强制断言，仅验证不 panic
 }
@@ -135,10 +135,10 @@ fn test_encode_decode_various_sizes() {
         let image = create_test_image(width, height, [128, 128, 128]);
         
         let jpeg_data = litemark_core::image_io::encode_image(&image, ImageFormat::Jpeg)
-            .expect(&format!("编码 {}x{} 失败", width, height));
+            .unwrap_or_else(|_| panic!("编码 {}x{} 失败", width, height));
         
         let decoded = litemark_core::image_io::decode_image(&jpeg_data)
-            .expect(&format!("解码 {}x{} 失败", width, height));
+            .unwrap_or_else(|_| panic!("解码 {}x{} 失败", width, height));
         
         assert_eq!(decoded.width(), width, "宽度应匹配");
         assert_eq!(decoded.height(), height, "高度应匹配");

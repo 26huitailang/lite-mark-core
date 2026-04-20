@@ -5,3 +5,4 @@
 mod pipeline_tests;
 mod template_tests;
 mod regression_tests;
+mod visual_regression_tests;

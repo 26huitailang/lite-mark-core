@@ -3,7 +3,6 @@
 //! 测试 EXIF 数据提取、格式化、变量转换等功能
 
 use litemark_core::exif::ExifData;
-use std::collections::HashMap;
 
 /// 测试 ExifData::new() 创建空对象
 #[test]

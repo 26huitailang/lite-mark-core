@@ -2,8 +2,8 @@
 //!
 //! 测试水印渲染引擎的功能
 
-use image::{DynamicImage, ImageFormat, Rgb, RgbImage};
-use litemark_core::layout::{Anchor, FontWeight, ItemType, Template, TemplateItem};
+use image::{DynamicImage, ImageFormat, Rgb};
+use litemark_core::layout::{RenderMode, Anchor, FontWeight, ItemType, Template, TemplateItem};
 use litemark_core::renderer::WatermarkRenderer;
 use std::collections::HashMap;
 
@@ -216,7 +216,8 @@ fn test_render_different_templates() {
         logo_size_ratio: 0.0,
         primary_font_ratio: 0.3,
         secondary_font_ratio: 0.2,
-        padding_ratio: 0.15,
+        padding_ratio: 0.1,
+        render_mode: RenderMode::BottomFrame,
     };
 
     let renderer = WatermarkRenderer::new().expect("创建渲染器失败");
@@ -291,7 +292,8 @@ fn create_test_template() -> Template {
         logo_size_ratio: 0.35,
         primary_font_ratio: 0.25,
         secondary_font_ratio: 0.18,
-        padding_ratio: 0.12,
+        padding_ratio: 0.1,
+        render_mode: RenderMode::BottomFrame,
     }
 }
 

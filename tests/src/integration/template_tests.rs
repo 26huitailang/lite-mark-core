@@ -3,8 +3,7 @@
 //! 测试所有模板变量组合和内置模板
 
 use litemark_core::exif::ExifData;
-use litemark_core::layout::{self, Template};
-use std::collections::HashMap;
+use litemark_core::layout::{RenderMode, self, Template};
 
 /// 测试内置模板加载
 #[test]
@@ -45,7 +44,7 @@ fn test_builtin_templates_structure() {
 #[test]
 fn test_all_exif_combinations() {
     let combinations: Vec<(&str, Box<dyn Fn() -> ExifData>)> = vec![
-        ("empty", Box::new(|| ExifData::new())),
+        ("empty", Box::new(ExifData::new)),
         ("full", Box::new(create_full_exif)),
         ("only_iso", Box::new(|| {
             let mut d = ExifData::new();
@@ -83,7 +82,7 @@ fn test_all_exif_combinations() {
         })),
     ];
 
-    for (name, factory) in combinations {
+    for (_name, factory) in combinations {
         let exif_data = factory();
         let variables = exif_data.to_variables();
 
@@ -196,7 +195,8 @@ fn test_template_anchor_positions() {
             logo_size_ratio: 0.35,
             primary_font_ratio: 0.2,
             secondary_font_ratio: 0.14,
-            padding_ratio: 0.1,
+            padding_ratio: 0.,
+            render_mode: RenderMode::BottomFrame,
         };
 
         // 验证可以序列化和反序列化
@@ -227,7 +227,8 @@ fn test_template_ratio_boundaries() {
             logo_size_ratio: ratio,
             primary_font_ratio: ratio,
             secondary_font_ratio: ratio * 0.7,
-            padding_ratio: ratio * 0.5,
+            padding_ratio: ratio * 0.,
+            render_mode: RenderMode::BottomFrame,
         };
 
         // 验证可以序列化
@@ -252,7 +253,7 @@ fn create_full_exif() -> ExifData {
 
 /// 辅助函数：创建包含所有变量的测试模板
 fn create_test_template_with_all_variables() -> Template {
-    use litemark_core::layout::{Anchor, FontWeight, ItemType, TemplateItem};
+    use litemark_core::layout::{RenderMode, Anchor, FontWeight, ItemType, TemplateItem};
 
     Template {
         name: "TestAllVars".to_string(),
@@ -297,13 +298,14 @@ fn create_test_template_with_all_variables() -> Template {
         logo_size_ratio: 0.35,
         primary_font_ratio: 0.2,
         secondary_font_ratio: 0.14,
-        padding_ratio: 0.1,
+        padding_ratio: 0.,
+        render_mode: RenderMode::BottomFrame,
     }
 }
 
 /// 辅助函数：创建包含指定值的模板
 fn create_template_with_value(value: &str) -> Template {
-    use litemark_core::layout::{Anchor, FontWeight, ItemType, TemplateItem};
+    use litemark_core::layout::{RenderMode, Anchor, FontWeight, ItemType, TemplateItem};
 
     Template {
         name: "Test".to_string(),
@@ -322,6 +324,7 @@ fn create_template_with_value(value: &str) -> Template {
         logo_size_ratio: 0.35,
         primary_font_ratio: 0.2,
         secondary_font_ratio: 0.14,
-        padding_ratio: 0.1,
+        padding_ratio: 0.,
+        render_mode: RenderMode::BottomFrame,
     }
 }

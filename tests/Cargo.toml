@@ -47,3 +47,7 @@ path = "src/integration/mod.rs"
 [[test]]
 name = "e2e"
 path = "src/e2e/mod.rs"
+
+[[bench]]
+name = "render_bench"
+harness = false

@@ -2,7 +2,7 @@
 //!
 //! 测试模板解析、变量替换、序列化等功能
 
-use litemark_core::layout::{Anchor, FontWeight, ItemType, Template, TemplateItem};
+use litemark_core::layout::{RenderMode, Anchor, FontWeight, ItemType, Template, TemplateItem};
 use std::collections::HashMap;
 
 /// 测试模板 JSON 序列化和反序列化
@@ -35,7 +35,8 @@ fn test_template_json_roundtrip() {
         logo_size_ratio: 0.35,
         primary_font_ratio: 0.20,
         secondary_font_ratio: 0.14,
-        padding_ratio: 0.10,
+        padding_ratio: 0.1,
+        render_mode: RenderMode::BottomFrame,
     };
 
     // 序列化
@@ -162,7 +163,8 @@ fn test_substitute_variables_multiple_items() {
         logo_size_ratio: 0.35,
         primary_font_ratio: 0.25,
         secondary_font_ratio: 0.18,
-        padding_ratio: 0.10,
+        padding_ratio: 0.1,
+        render_mode: RenderMode::BottomFrame,
     };
 
     let mut vars = HashMap::new();
@@ -327,6 +329,7 @@ fn create_test_template(value: &str) -> Template {
         logo_size_ratio: 0.35,
         primary_font_ratio: 0.20,
         secondary_font_ratio: 0.14,
-        padding_ratio: 0.10,
+        padding_ratio: 0.1,
+        render_mode: RenderMode::BottomFrame,
     }
 }

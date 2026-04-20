@@ -4,9 +4,8 @@
 
 use image::{DynamicImage, ImageFormat, Rgb, RgbImage};
 use litemark_core::exif::ExifData;
-use litemark_core::layout::{Anchor, FontWeight, ItemType, Template, TemplateItem};
+use litemark_core::layout::{RenderMode, Anchor, FontWeight, ItemType, Template, TemplateItem};
 use litemark_core::renderer::WatermarkRenderer;
-use std::collections::HashMap;
 
 /// 测试标准处理流程
 #[test]
@@ -293,7 +292,8 @@ fn create_simple_template() -> Template {
         logo_size_ratio: 0.0,
         primary_font_ratio: 0.25,
         secondary_font_ratio: 0.18,
-        padding_ratio: 0.15,
+        padding_ratio: 0.1,
+        render_mode: RenderMode::BottomFrame,
     }
 }
 
@@ -334,7 +334,8 @@ fn create_classic_template() -> Template {
         logo_size_ratio: 0.0,
         primary_font_ratio: 0.22,
         secondary_font_ratio: 0.16,
-        padding_ratio: 0.12,
+        padding_ratio: 0.1,
+        render_mode: RenderMode::BottomFrame,
     }
 }
 
@@ -357,6 +358,7 @@ fn create_minimal_template() -> Template {
         logo_size_ratio: 0.0,
         primary_font_ratio: 0.35,
         secondary_font_ratio: 0.25,
-        padding_ratio: 0.20,
+        padding_ratio: 0.2,
+        render_mode: RenderMode::BottomFrame,
     }
 }
