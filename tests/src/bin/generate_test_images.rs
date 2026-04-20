@@ -2,8 +2,8 @@
 //!
 //! 生成各种尺寸、格式、EXIF 组合的测试图片
 
-use anyhow::{Context, Result};
-use image::{DynamicImage, ImageBuffer, ImageFormat, Rgb, Rgba};
+use anyhow::Result;
+use image::{DynamicImage, ImageBuffer, ImageFormat, Rgb};
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -198,7 +198,7 @@ fn main() -> Result<()> {
     fs::create_dir_all(&png_dir)?;
     
     for config in &configs {
-        let mut png_config = TestImageConfig {
+        let png_config = TestImageConfig {
             name: config.name.clone(),
             width: config.width,
             height: config.height,

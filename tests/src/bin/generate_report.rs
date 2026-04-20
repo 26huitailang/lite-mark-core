@@ -4,9 +4,9 @@
 
 use anyhow::{Context, Result};
 use chrono::Local;
-use image::{DynamicImage, ImageFormat, Rgb, RgbImage};
+use image::{DynamicImage, ImageFormat, Rgb};
 use litemark_core::exif::ExifData;
-use litemark_core::layout::{self, Anchor, FontWeight, ItemType, Template, TemplateItem};
+use litemark_core::layout::{RenderMode, self, Anchor, FontWeight, ItemType, Template, TemplateItem};
 use litemark_core::renderer::WatermarkRenderer;
 use serde::Serialize;
 use std::collections::HashMap;
@@ -85,7 +85,7 @@ fn main() -> Result<()> {
         println!("\n处理模板 {}: {}", template_idx + 1, template_name);
 
         // 生成不同尺寸的测试用例（包含高分辨率以验证上限移除修复）
-        let sizes = vec![(800, 600), (1920, 1080), (1024, 1024), (6000, 4000)];
+        let sizes = [(800, 600), (1920, 1080), (1024, 1024), (6000, 4000)];
 
         for (idx, (width, height)) in sizes.iter().enumerate() {
             let case_id = format!("TC{:03}", template_idx * 10 + idx + 1);
@@ -245,7 +245,7 @@ fn load_test_templates() -> Vec<(String, Template)> {
 /// 生成单个测试用例
 fn generate_test_case(
     case_id: &str,
-    case_name: &str,
+    _case_name: &str,
     _template_name: &str,
     template: &Template,
     width: u32,
@@ -374,67 +374,87 @@ fn create_test_image(width: u32, height: u32) -> DynamicImage {
     DynamicImage::ImageRgb8(img)
 }
 
-/// 创建经典模板
+/// 创建经典模板（fallback）
 fn create_classic_template() -> Template {
     Template {
         name: "Classic".to_string(),
         anchor: Anchor::BottomLeft,
-        padding: 20,
+        padding: 0,
         items: vec![
+            TemplateItem {
+                item_type: ItemType::Logo,
+                value: "".to_string(),
+                font_size: 0,
+                font_size_ratio: 0.0,
+                weight: Some(FontWeight::Normal),
+                color: None,
+            },
             TemplateItem {
                 item_type: ItemType::Text,
                 value: "{Author}".to_string(),
-                font_size: 20,
-                font_size_ratio: 0.22,
+                font_size: 0,
+                font_size_ratio: 0.24,
                 weight: Some(FontWeight::Bold),
-                color: Some("#000000".to_string()),
+                color: Some("#1A1A1A".to_string()),
             },
             TemplateItem {
                 item_type: ItemType::Text,
-                value: "{Camera} • {Lens}".to_string(),
-                font_size: 14,
-                font_size_ratio: 0.16,
+                value: "{Camera}  ·  {Lens}".to_string(),
+                font_size: 0,
+                font_size_ratio: 0.15,
                 weight: Some(FontWeight::Normal),
-                color: Some("#333333".to_string()),
+                color: Some("#555555".to_string()),
             },
             TemplateItem {
                 item_type: ItemType::Text,
-                value: "{Aperture} | ISO {ISO} | {Shutter}".to_string(),
-                font_size: 14,
-                font_size_ratio: 0.16,
+                value: "{Focal}    {Aperture}    {Shutter}    ISO {ISO}".to_string(),
+                font_size: 0,
+                font_size_ratio: 0.13,
                 weight: Some(FontWeight::Normal),
-                color: Some("#666666".to_string()),
+                color: Some("#888888".to_string()),
             },
         ],
         background: None,
-        frame_height_ratio: 0.12,
-        logo_size_ratio: 0.35,
-        primary_font_ratio: 0.22,
-        secondary_font_ratio: 0.16,
+        frame_height_ratio: 0.10,
+        logo_size_ratio: 0.30,
+        primary_font_ratio: 0.24,
+        secondary_font_ratio: 0.15,
         padding_ratio: 0.12,
+        render_mode: RenderMode::BottomFrame,
     }
 }
 
-/// 创建紧凑模板
+/// 创建紧凑模板（fallback）
 fn create_compact_template() -> Template {
     Template {
         name: "Compact".to_string(),
         anchor: Anchor::BottomLeft,
-        padding: 10,
-        items: vec![TemplateItem {
-            item_type: ItemType::Text,
-            value: "{Author} • {Aperture} • ISO {ISO}".to_string(),
-            font_size: 14,
-            font_size_ratio: 0.35,
-            weight: Some(FontWeight::Normal),
-            color: Some("#000000".to_string()),
-        }],
+        padding: 0,
+        items: vec![
+            TemplateItem {
+                item_type: ItemType::Text,
+                value: "{Author}".to_string(),
+                font_size: 0,
+                font_size_ratio: 0.28,
+                weight: Some(FontWeight::Normal),
+                color: Some("#1A1A1A".to_string()),
+            },
+            TemplateItem {
+                item_type: ItemType::Text,
+                value: "{Camera}  ·  {Focal}  ·  {Aperture}  ·  ISO {ISO}".to_string(),
+                font_size: 0,
+                font_size_ratio: 0.16,
+                weight: Some(FontWeight::Normal),
+                color: Some("#777777".to_string()),
+            },
+        ],
         background: None,
         frame_height_ratio: 0.06,
         logo_size_ratio: 0.0,
-        primary_font_ratio: 0.35,
-        secondary_font_ratio: 0.25,
-        padding_ratio: 0.20,
+        primary_font_ratio: 0.28,
+        secondary_font_ratio: 0.16,
+        padding_ratio: 0.10,
+        render_mode: RenderMode::Minimal,
     }
 }
 

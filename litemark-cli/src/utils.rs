@@ -97,8 +97,8 @@ pub fn find_images_in_directory(dir: &str) -> Result<Vec<String>, Box<dyn std::e
         .filter_map(|e| e.ok())
     {
         let path = entry.path();
-        if path.is_file() {
-            if let Some(ext) = path.extension() {
+        if path.is_file()
+            && let Some(ext) = path.extension() {
                 let ext = ext.to_string_lossy().to_lowercase();
                 if matches!(
                     ext.as_str(),
@@ -107,7 +107,6 @@ pub fn find_images_in_directory(dir: &str) -> Result<Vec<String>, Box<dyn std::e
                     images.push(path.to_string_lossy().to_string());
                 }
             }
-        }
     }
 
     Ok(images)

@@ -34,10 +34,10 @@ struct BatchConfig {
 impl BatchConfig {
     fn from_args(concurrency: Option<usize>) -> Self {
         let detected_cpus = num_cpus::get();
-        let default_concurrency = (detected_cpus * 2).max(2).min(32);
+        let default_concurrency = (detected_cpus * 2).clamp(2, 32);
 
         let concurrency = concurrency.unwrap_or(default_concurrency);
-        let concurrency = concurrency.max(1).min(32); // Clamp to [1, 32]
+        let concurrency = concurrency.clamp(1, 32); // Clamp to [1, 32]
 
         Self { concurrency }
     }
