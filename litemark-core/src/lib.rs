@@ -16,12 +16,14 @@
 //! - 内存安全：所有图像数据通过内存传递，不涉及路径引用
 //! - 可组合性：每个模块可独立使用，也可组合使用
 
+pub mod error;
 pub mod image_io;
 pub mod exif;
 pub mod layout;
 pub mod renderer;
 
 // Re-export core types for convenience
+pub use error::CoreError;
 pub use exif::ExifData;
 pub use layout::Template;
 pub use renderer::WatermarkRenderer;

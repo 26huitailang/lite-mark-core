@@ -132,7 +132,7 @@ fn decode_heic_from_bytes(data: &[u8]) -> Result<DynamicImage, Box<dyn std::erro
     // Convert to RGBA format for consistency
     let mut rgba_data = Vec::with_capacity((width * height * 4) as usize);
     let rgb_data = interleaved_plane.data;
-    let stride = interleaved_plane.stride as usize;
+    let stride = interleaved_plane.stride;
 
     for y in 0..height {
         let row_start = y as usize * stride;

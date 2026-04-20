@@ -1,5 +1,6 @@
 use image::{DynamicImage, ImageFormat, Rgb, RgbImage};
 use litemark_core::{exif, image_io, layout, renderer::WatermarkRenderer};
+use litemark_core::layout::RenderMode;
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::fs;
@@ -109,9 +110,10 @@ fn test_template_builtin() {
     assert!(templates.iter().any(|t| t.name == "Classic"));
     assert!(templates.iter().any(|t| t.name == "Compact"));
     assert!(templates.iter().any(|t| t.name == "Professional"));
+    assert!(templates.iter().any(|t| t.name == "Overlay"));
 
     let classic = templates.iter().find(|t| t.name == "Classic").unwrap();
-    assert_eq!(classic.items.len(), 3); // Logo + 2个文本项
+    assert_eq!(classic.items.len(), 4); // Logo + 3个文本项
 }
 
 #[test]
@@ -143,7 +145,8 @@ fn test_template_variable_substitution() {
         logo_size_ratio: 0.35,
         primary_font_ratio: 0.20,
         secondary_font_ratio: 0.14,
-        padding_ratio: 0.10,
+        padding_ratio: 0.1,
+        render_mode: RenderMode::BottomFrame,
     };
 
     let mut variables = HashMap::new();
@@ -178,7 +181,8 @@ fn test_template_json_serialization() {
         logo_size_ratio: 0.4,
         primary_font_ratio: 0.25,
         secondary_font_ratio: 0.18,
-        padding_ratio: 0.12,
+        padding_ratio: 0.1,
+        render_mode: RenderMode::BottomFrame,
     };
 
     // 序列化
@@ -313,7 +317,8 @@ fn test_customer_regression_suite() {
             logo_size_ratio: 0.35,
             primary_font_ratio: 0.20,
             secondary_font_ratio: 0.14,
-            padding_ratio: 0.10,
+            padding_ratio: 0.1,
+            render_mode: RenderMode::BottomFrame,
         };
 
         let rendered = template.substitute_variables(&case.variables);

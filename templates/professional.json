@@ -2,11 +2,12 @@
     "name": "Professional",
     "anchor": "bottom-left",
     "padding": 0,
-    "frame_height_ratio": 0.15,
-    "logo_size_ratio": 0.40,
-    "primary_font_ratio": 0.26,
-    "secondary_font_ratio": 0.16,
+    "frame_height_ratio": 0.12,
+    "logo_size_ratio": 0.35,
+    "primary_font_ratio": 0.22,
+    "secondary_font_ratio": 0.14,
     "padding_ratio": 0.15,
+    "render_mode": "gradient-frame",
     "items": [
         {
             "type": "logo",
@@ -24,31 +25,24 @@
         },
         {
             "type": "text",
-            "value": "{Camera}",
-            "font_size_ratio": 0.16,
-            "weight": "normal",
-            "color": "#4A4A4A"
-        },
-        {
-            "type": "text",
             "value": "{DateTime}",
-            "font_size_ratio": 0.14,
+            "font_size_ratio": 0.12,
             "weight": "normal",
-            "color": "#6A6A6A"
+            "color": "#AAAAAA"
         },
         {
             "type": "text",
-            "value": "{Lens}",
-            "font_size_ratio": 0.16,
-            "weight": "normal",
-            "color": "#4A4A4A"
+            "value": "{Camera}  ·  {Lens}",
+            "font_size_ratio": 0.14,
+            "weight": "bold",
+            "color": "#333333"
         },
         {
             "type": "text",
-            "value": "{Focal} • {Aperture} • {Shutter} • ISO {ISO}",
-            "font_size_ratio": 0.14,
+            "value": "{Focal}    {Aperture}    {Shutter}    ISO {ISO}",
+            "font_size_ratio": 0.13,
             "weight": "normal",
-            "color": "#6A6A6A"
+            "color": "#777777"
         }
     ],
     "background": null

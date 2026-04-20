@@ -166,23 +166,21 @@ fn extract_iso(exif: &exif::Exif) -> Option<u32> {
 /// 提取光圈值
 fn extract_aperture(exif: &exif::Exif) -> Option<f64> {
     let field = exif.get_field(Tag::FNumber, In::PRIMARY)?;
-    if let Value::Rational(rationals) = &field.value {
-        if let Some(rational) = rationals.first() {
+    if let Value::Rational(rationals) = &field.value
+        && let Some(rational) = rationals.first() {
             return Some(rational.num as f64 / rational.denom as f64);
         }
-    }
     None
 }
 
 /// 提取快门速度并格式化
 fn extract_shutter_speed(exif: &exif::Exif) -> Option<String> {
     let field = exif.get_field(Tag::ExposureTime, In::PRIMARY)?;
-    if let Value::Rational(rationals) = &field.value {
-        if let Some(rational) = rationals.first() {
+    if let Value::Rational(rationals) = &field.value
+        && let Some(rational) = rationals.first() {
             let exposure_time = rational.num as f64 / rational.denom as f64;
             return Some(format_shutter_speed(exposure_time));
         }
-    }
     None
 }
 
@@ -199,11 +197,10 @@ fn format_shutter_speed(exposure_time: f64) -> String {
 /// 提取焦距
 fn extract_focal_length(exif: &exif::Exif) -> Option<f64> {
     let field = exif.get_field(Tag::FocalLength, In::PRIMARY)?;
-    if let Value::Rational(rationals) = &field.value {
-        if let Some(rational) = rationals.first() {
+    if let Value::Rational(rationals) = &field.value
+        && let Some(rational) = rationals.first() {
             return Some(rational.num as f64 / rational.denom as f64);
         }
-    }
     None
 }
 

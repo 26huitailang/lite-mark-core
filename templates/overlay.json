@@ -1,27 +1,27 @@
 {
-    "name": "Compact",
-    "anchor": "bottom-left",
+    "name": "Overlay",
+    "anchor": "bottom-right",
     "padding": 0,
-    "frame_height_ratio": 0.06,
+    "frame_height_ratio": 0.08,
     "logo_size_ratio": 0.0,
-    "primary_font_ratio": 0.30,
-    "secondary_font_ratio": 0.18,
-    "padding_ratio": 0.10,
-    "render_mode": "minimal",
+    "primary_font_ratio": 0.28,
+    "secondary_font_ratio": 0.16,
+    "padding_ratio": 0.12,
+    "render_mode": "overlay",
     "items": [
         {
             "type": "text",
             "value": "{Author}",
             "font_size_ratio": 0.28,
-            "weight": "normal",
-            "color": "#1A1A1A"
+            "weight": "bold",
+            "color": "#FFFFFF"
         },
         {
             "type": "text",
             "value": "{Camera}  ·  {Focal}  ·  {Aperture}  ·  ISO {ISO}",
-            "font_size_ratio": 0.16,
+            "font_size_ratio": 0.15,
             "weight": "normal",
-            "color": "#777777"
+            "color": "#CCCCCC"
         }
     ],
     "background": null
