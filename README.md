@@ -10,6 +10,7 @@ A lightweight photo parameter frame tool for photography enthusiasts.
 - 🔤 **Professional font rendering** - Using ab_glyph, supports custom fonts
 - 🖼️ **Logo support** - Automatic scaling and positioning
 - 📱 **Batch processing** - Process entire directories with concurrency
+- 🖼️ **HEIC/HEIF support** - Automatic conversion to JPEG
 - 🔒 **Privacy-first** - All processing happens locally
 
 ## Installation
@@ -20,6 +21,7 @@ A lightweight photo parameter frame tool for photography enthusiasts.
 git clone https://github.com/26huitailang/lite-mark-core.git
 cd lite-mark-core
 cargo build --release
+# The binary is located at ./target/release/litemark-cli
 ```
 
 ## Usage
@@ -28,17 +30,31 @@ cargo build --release
 
 ```bash
 # Add frame to single image
-litemark add -i input.jpg -t classic -o output.jpg
+litemark-cli add -i input.jpg -t classic -o output.jpg
 
 # With author name
-litemark add -i input.jpg -t classic -o output.jpg --author "Photographer"
+litemark-cli add -i input.jpg -t classic -o output.jpg --author "Photographer"
+
+# With custom logo
+litemark-cli add -i input.jpg -t classic -o output.jpg --logo ./logo.png
 
 # Batch process
-litemark batch -i ./photos/ -t classic -o ./output/
+litemark-cli batch -i ./photos/ -t classic -o ./output/
+
+# Batch with concurrency control
+litemark-cli batch -i ./photos/ -t classic -o ./output/ --concurrency 4
 
 # List templates
-litemark templates
+litemark-cli templates
+
+# Show template details
+litemark-cli show-template classic
 ```
+
+### Environment Variables
+
+- `LITEMARK_FONT` - Default custom font path
+- `LITEMARK_LOGO` - Default logo path
 
 ### Template Variables
 
@@ -48,7 +64,7 @@ litemark templates
 
 ```bash
 # Use --font parameter
-litemark add -i photo.jpg -o output.jpg --author "张三" \
+litemark-cli add -i photo.jpg -o output.jpg --author "张三" \
   --font "/System/Library/Fonts/PingFang.ttc"
 
 # Or set environment variable
@@ -70,6 +86,7 @@ litemark-cli/       # CLI client
 litemark-wasm/      # WASM bindings
 templates/          # JSON templates
 test_images/        # Test images
+tests/              # Integration and E2E test suite
 ```
 
 ## Development

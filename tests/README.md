@@ -14,7 +14,7 @@ cargo test -p litemark-test-suite --test integration
 cargo test -p litemark-test-suite --test e2e
 
 # 生成测试图片
- cargo run -p litemark-test-suite --bin generate-test-images
+cargo run -p litemark-test-suite --bin generate-test-images
 
 # 生成视觉报告
 cargo run -p litemark-test-suite --bin generate-report
@@ -29,15 +29,16 @@ cargo run -p litemark-test-suite --bin health-check
 tests/
 ├── src/
 │   ├── unit/           # 单元测试
-│   ├── integration/    # 集成测试
+│   ├── integration/    # 集成测试（含视觉回归测试）
 │   ├── e2e/            # 端到端测试
-│   ├── fixtures/       # 测试数据定义
-│   ├── tools/          # 测试工具
+│   ├── fixtures/       # 测试数据定义（空，待补充）
+│   ├── tools/          # 测试工具（空，待补充）
 │   └── bin/            # 可执行工具
 ├── fixtures/           # 测试数据文件
-│   ├── images/         # 测试图片
-│   ├── templates/      # 测试模板
-│   └── expected/       # 预期输出
+│   ├── images/         # 测试图片（子目录为空，需运行 generate-test-images 生成）
+│   ├── templates/      # 测试模板（空，待补充）
+│   ├── expected/       # 预期输出（视觉回归基准图）
+│   └── regressions.jsonl  # 回归测试用例定义
 └── assets/             # 报告资源文件
 ```
 
@@ -65,6 +66,7 @@ tests/
 | `pipeline_tests.rs` | 完整处理管道 |
 | `template_tests.rs` | 模板组合测试 |
 | `regression_tests.rs` | 回归测试套件 |
+| `visual_regression_tests.rs` | 视觉回归测试 |
 
 运行时间: < 60 秒
 
@@ -75,7 +77,6 @@ tests/
 | 测试文件 | 覆盖范围 |
 |---------|---------|
 | `cli_tests.rs` | CLI 命令测试 |
-| `visual_regression/` | 视觉回归测试 |
 
 运行时间: < 5 分钟
 
@@ -121,15 +122,13 @@ fn test_pipeline_dimensions(width: u32, height: u32, template: &str) {
 
 ### 测试图片
 
-测试图片存储在 `fixtures/images/`，按类型分类：
+测试图片存储在 `fixtures/images/`，按类型分类（子目录目前为空，可通过以下命令生成）：
 
 - `jpeg/`: JPEG 格式测试图片
 - `png/`: PNG 格式测试图片
 - `heic/`: HEIC 格式测试图片（可选）
 - `edge_cases/`: 边界情况图片
 - `exif_variants/`: 不同 EXIF 组合
-
-### 生成测试图片
 
 ```bash
 cargo run -p litemark-test-suite --bin generate-test-images

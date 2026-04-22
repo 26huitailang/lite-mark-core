@@ -27,7 +27,7 @@
                           ▼
 ┌─────────────────────────────────────────────────────────┐
 │                  External Dependencies                   │
-│    image, libheif-rs, ab_glyph, kamadak-exif, serde     │
+│    image, libheif-rs, ab_glyph, kamadak-exif, serde, thiserror │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -38,8 +38,8 @@
 **职责**：图像编解码，所有操作基于内存
 
 **关键函数**：
-- `decode_image(data: &[u8]) -> Result<DynamicImage, CoreError>`
-- `encode_image(image: &DynamicImage, format: ImageFormat) -> Result<Vec<u8>, CoreError>`
+- `decode_image(data: &[u8]) -> Result<DynamicImage, Box<dyn std::error::Error>>`
+- `encode_image(image: &DynamicImage, format: ImageFormat) -> Result<Vec<u8>, Box<dyn std::error::Error>>`
 - `detect_format(data: &[u8]) -> ImageFormat`
 
 **设计要点**：
@@ -71,7 +71,7 @@ pub struct ExifData {
 ```
 
 **关键函数**：
-- `extract_from_bytes(data: &[u8]) -> Result<ExifData, CoreError>`
+- `extract_from_bytes(data: &[u8]) -> Result<ExifData, Box<dyn std::error::Error>>`
 - `to_variables(&self) -> HashMap<String, String>`
 - `get_missing_fields(&self) -> Vec<String>`
 
@@ -107,14 +107,14 @@ pub struct Template {
 pub enum RenderMode {
     BottomFrame,    // 底部纯色框
     GradientFrame,  // 底部渐变过渡
-    Minimal,        // 极简线条
     Overlay,        // 照片内嵌叠加
+    Minimal,        // 极简线条
 }
 ```
 
 **关键函数**：
-- `from_json(json: &str) -> Result<Template, CoreError>`
-- `to_json(&self) -> Result<String, CoreError>`
+- `from_json(json: &str) -> Result<Self, serde_json::Error>`
+- `to_json(&self) -> Result<String, serde_json::Error>`
 - `substitute_variables(&self, vars: &HashMap<String, String>) -> Template`
 - `create_builtin_templates() -> Vec<Template>`（编译时嵌入 JSON）
 
@@ -141,17 +141,17 @@ pub struct WatermarkRenderer {
     fonts: FontSet,
 }
 
-struct FontSet {
+struct FontSet {  // 定义在 renderer/text.rs
     regular: FontRef<'static>,
     bold: Option<FontRef<'static>>,
 }
 ```
 
 **关键函数**：
-- `new() -> Result<Self, CoreError>`（默认字体）
-- `from_font_bytes(regular: Option<&[u8]>) -> Result<Self, CoreError>`（自定义字体）
-- `from_font_bytes_with_bold(regular, bold) -> Result<Self, CoreError>`（多字重）
-- `render_watermark_with_logo_bytes(...) -> Result<(), CoreError>`
+- `new() -> Result<Self, Box<dyn std::error::Error>>`（默认字体）
+- `from_font_bytes(regular: Option<&[u8]>) -> Result<Self, Box<dyn std::error::Error>>`（自定义字体）
+- `from_font_bytes_with_bold(regular, bold) -> Result<Self, Box<dyn std::error::Error>>`（多字重）
+- `render_watermark_with_logo_bytes(...) -> Result<(), Box<dyn std::error::Error>>`
 
 **渲染流程**：
 ```
@@ -282,9 +282,9 @@ let font = FontRef::try_from_slice(leaked)?;
 
 ### 1. 传播式错误（Propagate）
 
-大部分函数返回 `Result<T, CoreError>`，让调用者决定如何处理：
+大部分函数返回 `Result<T, Box<dyn std::error::Error>>`，让调用者决定如何处理：
 ```rust
-pub fn decode_image(data: &[u8]) -> Result<DynamicImage, CoreError>
+pub fn decode_image(data: &[u8]) -> Result<DynamicImage, Box<dyn std::error::Error>>
 ```
 
 ### 2. 降级式错误（Degrade）
@@ -401,31 +401,28 @@ let mut rgba_data = Vec::with_capacity((width * height * 4) as usize);
 
 ## 版本演进
 
-### v0.2.0（改造前）
+### v0.2.0（当前）
 
 - ✅ 基于内存的 API
 - ✅ EXIF 字节流提取
 - ✅ 字体和 Logo 字节数组输入
 - ✅ 集成测试覆盖
-- ❌ `Box<dyn Error>` 错误处理
-- ❌ `rusttype` 字体引擎（已停止维护）
-- ❌ 仅支持底部白框一种渲染模式
-- ❌ 单字重字体
-
-### v0.3.0（当前）
-
-- ✅ 结构化错误类型（`thiserror`）
 - ✅ `ab_glyph` 字体引擎（替代 `rusttype`）
 - ✅ 多字重字体支持（Regular + Bold）
-- ✅ 四种渲染模式（BottomFrame / GradientFrame / Minimal / Overlay）
+- ✅ 四种渲染模式（BottomFrame / GradientFrame / Overlay / Minimal）
 - ✅ 颜色 alpha 通道支持（`#RRGGBBAA`）
 - ✅ 右对齐与视觉层级排版
 - ✅ Logo 双线性插值缩放
 - ✅ 视觉回归测试 + 性能基准
 - ✅ WASM 编译通过
+- ⚠️ `CoreError` 已定义（`thiserror`），但公共 API 仍返回 `Box<dyn std::error::Error>`
 
-### v1.0.0（目标）
+### v0.3.0（目标）
 
+- ⏳ 公共 API 全面迁移到 `CoreError`
 - ⏳ 稳定的公开 API
 - ⏳ 完整的用户文档
+
+### v1.0.0（远期）
+
 - ⏳ GPU 加速渲染（可选特性）

@@ -118,13 +118,13 @@
 
 | Wiki 文档 | 对应的 LiteMark 代码 | 对应的项目文档 |
 |-----------|---------------------|--------------|
-| 02-像素与颜色 | `renderer.rs` `blend_pixel`, `parse_color` | `docs/DESIGN_SYSTEM.md` |
+| 02-像素与颜色 | `renderer/color.rs` `parse_color`<br>`renderer/draw.rs` `blend_pixel` | `docs/DESIGN_SYSTEM.md` |
 | 03-EXIF | `exif.rs` | `examples/exif_extraction.md` |
 | 01-图像格式 | `image_io.rs` | — |
 | 07-HEIC | `image_io.rs` `decode_heic_from_bytes` | — |
-| 04-字体渲染 | `renderer.rs` `render_text_simple` | `examples/chinese_font_guide.md` |
-| 05-图像合成 | `renderer.rs` 各渲染函数 | `litemark-core/ARCHITECTURE.md` |
-| 06-分辨率 | `renderer.rs` 尺寸计算 | `docs/resolution_scaling_analysis.md` |
+| 04-字体渲染 | `renderer/text.rs` `render_text_simple` | `examples/chinese_font_guide.md` |
+| 05-图像合成 | `renderer/draw.rs`, `renderer/logo.rs` | `litemark-core/ARCHITECTURE.md` |
+| 06-分辨率 | `renderer/mod.rs` 尺寸计算 | `docs/resolution_scaling_analysis.md` |
 
 ---
 
