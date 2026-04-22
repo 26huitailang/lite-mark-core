@@ -1,47 +1,20 @@
+---
+name: litemark-dev
+description: LiteMark 项目开发速查。提供模板变量、make 命令、常见开发任务和调试技巧。当在 LiteMark 代码库中开发、调试或修改功能时使用。通用项目信息（构建命令、项目结构、开发规范）见项目根目录 AGENTS.md。
+---
+
 # LiteMark 开发技能
 
-LiteMark 照片水印工具的开发者快速参考。
+LiteMark 照片水印工具的**开发速查卡**。
 
-## 构建命令
+> **通用项目信息**（技术栈、项目结构、完整构建命令、开发规范）见项目根目录 `AGENTS.md`。本 skill 只包含日常开发中高频使用的速查信息。
 
-```bash
-# 完整构建
-cargo build --workspace
-
-# 发布构建
-cargo build --workspace --release
-
-# 运行测试
-cargo test --workspace --exclude litemark-wasm
-
-# 代码检查
-cargo clippy --workspace --all-targets --exclude litemark-wasm
-
-# 格式化
-cargo fmt
-
-# WASM 检查
-cargo check -p litemark-wasm --target wasm32-unknown-unknown
-```
-
-## 快速演示
+## Make 速查
 
 ```bash
-# 单图处理
-make demo
-
-# 批量处理测试
-make test
-```
-
-## 项目结构
-
-```
-litemark-core/      # 纯内存 API（平台无关）
-litemark-cli/       # CLI 客户端
-litemark-wasm/      # WASM 绑定
-templates/          # JSON 模板
-test_images/        # 测试图片
+make demo        # 生成所有模板演示图
+make test        # 运行所有测试
+make install     # 安装 CLI 到系统
 ```
 
 ## 模板变量
@@ -60,7 +33,7 @@ test_images/        # 测试图片
 ## 模板开发
 
 1. 在 `templates/` 创建 JSON 文件
-2. 使用内置模板作为参考：`classic.json`, `compact.json`
+2. 使用内置模板作为参考：`classic.json`, `compact.json`, `professional.json`, `overlay.json`
 3. 测试：`cargo run -- templates`
 
 ## 字体配置
@@ -77,13 +50,24 @@ export LITEMARK_FONT="/path/to/font.ttf"
 
 ### 添加新模板变量
 
-1. 修改 `litemark-core/src/exif.rs` - 提取数据
-2. 修改 `litemark-core/src/layout.rs` - 变量替换
+1. 修改 `litemark-core/src/exif.rs` — 提取数据
+2. 修改 `litemark-core/src/layout.rs` — 变量替换
 3. 更新本文档变量表格
+4. 更新 `AGENTS.md` 如有必要
 
 ### 调试渲染问题
 
 ```bash
 # 启用详细日志
 RUST_LOG=debug cargo run -- add -i test.jpg -o out.jpg
+```
+
+### 快速验证修改
+
+```bash
+# 增量检查（最快）
+cargo check -p litemark-core
+
+# 完整测试
+cargo test --workspace --exclude litemark-wasm
 ```

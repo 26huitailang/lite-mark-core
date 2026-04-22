@@ -4,6 +4,28 @@
 
 LiteMark 是一个 Rust 照片水印处理工具，为照片添加参数边框（EXIF 数据）。支持 CLI、WASM 和 iOS 集成。
 
+## 信息分层与文档导航
+
+本项目采用三层信息架构，agent 应按层级定位所需信息：
+
+| 层级 | 文档/Skill | 职责 | 何时查阅 |
+|------|-----------|------|---------|
+| **L1 权威指南** | `AGENTS.md`（本文档） | 项目概述、技术栈、项目结构、构建命令、开发规范、CI/CD | **首次接触项目**或需要通用项目信息时 |
+| **L2 任务技能** | `.kimi/skills/litemark-dev` | 开发速查：模板变量、常见任务、调试技巧 | 日常开发时快速参考 |
+| **L2 任务技能** | `.kimi/skills/litemark-release` | 版本发布：版本号、CHANGELOG、Git Tag | 发布新版本时 |
+| **L2 任务技能** | `.kimi/skills/dev-pipeline` | 完整开发流水线：需求→设计→实现→审核 | 新功能完整开发流程 |
+| **L2 任务技能** | `.kimi/skills/rust-test-runner` | 测试运行与错误分析 | `cargo test` 相关任务 |
+| **L2 任务技能** | `.kimi/skills/req-bug-analyzer` | 只读分析与结构化报告 | 需求分析、Bug 排查 |
+| **L2 任务技能** | `.kimi/skills/doc-maintainer` | 文档一致性检查 | 检查文档与代码是否同步 |
+| **L3 技术文档** | `README.md` | 终端用户功能介绍和安装指南 | 了解项目能做什么 |
+| **L3 技术文档** | `litemark-core/README.md` | 库使用者 API 示例 | 集成 Core 库 |
+| **L3 技术文档** | `litemark-core/ARCHITECTURE.md` | 内部架构和设计决策 | 深入理解实现细节 |
+
+**原则**：
+- `AGENTS.md` 是**单源真理**，通用项目信息以本文档为准
+- Skills 不重复 `AGENTS.md` 内容，而是引用并补充**任务特有**信息
+- 修改项目-wide 信息时，优先更新 `AGENTS.md`
+
 ## 技术栈
 
 - **语言**: Rust (Edition 2024, 1.85+，建议使用 stable 最新版)

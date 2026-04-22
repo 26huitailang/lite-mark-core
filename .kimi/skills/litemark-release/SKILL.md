@@ -1,3 +1,8 @@
+---
+name: litemark-release
+description: LiteMark 版本发布流程指南。涵盖版本号更新、CHANGELOG 维护、Git Tag 创建、GitHub Release 发布。当需要发布新版本或准备发布时使用。
+---
+
 # LiteMark 发布技能
 
 LiteMark 版本发布流程快速参考。

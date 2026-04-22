@@ -119,10 +119,10 @@ Core 库仅依赖以下必要的 crate：
 
 - `image`: 图像处理
 - `libheif-rs`: HEIC 格式支持
-- `rusttype`: 字体渲染
+- `ab_glyph`: 字体渲染
 - `kamadak-exif`: EXIF 解析
 - `serde`, `serde_json`: 数据序列化
-- `anyhow`, `thiserror`: 错误处理
+- `thiserror`: 错误处理
 
 **不包含**：
 

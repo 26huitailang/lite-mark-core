@@ -1,17 +1,17 @@
 ---
 name: rust-test-runner
-description: Run Rust unit tests, report errors with analysis, and provide fix suggestions. Use when user asks to run tests, check test results, fix test failures, or any cargo test related tasks. Works for cargo test, cargo check, clippy, and other Rust testing workflows.
+description: 运行 Rust 测试并分析错误，提供修复建议。当用户要求运行测试、检查测试结果、修复测试失败或执行 cargo test / cargo check / clippy 相关任务时使用。
 ---
 
-# Rust Test Runner
+# Rust 测试运行器
 
-Run Rust tests and provide intelligent error analysis with fix suggestions.
+运行 Rust 测试，提供错误分析与修复建议。
 
-## Workflow
+## 工作流
 
-### 1. Run Tests
+### 1. 运行测试
 
-Execute tests based on project structure:
+根据项目结构执行测试：
 
 ```bash
 # Default: run all workspace tests (excluding wasm if needed)
@@ -27,99 +27,99 @@ cargo test -p <package-name>
 cargo test --workspace -- --nocapture
 ```
 
-### 2. Analyze Errors
+### 2. 分析错误
 
-Parse test output and categorize errors:
+解析测试输出并分类错误：
 
-**Compilation Errors:**
-- Syntax errors (missing `,`, `;`, unmatched braces)
-- Type mismatches
-- Missing imports
-- Duplicate definitions
-- Missing derive macros
+**编译错误：**
+- 语法错误（缺少 `,`、`;`、括号不匹配）
+- 类型不匹配
+- 缺少导入
+- 重复定义
+- 缺少 derive 宏
 
-**Test Failures:**
-- Assertion failures
-- Panics
-- Timeouts
+**测试失败：**
+- 断言失败
+- panic
+- 超时
 
-**Warnings (optional fix):**
-- Unused imports/variables
-- Deprecated code
+**警告（可选修复）：**
+- 未使用的导入/变量
+- 已弃用代码
 
-### 3. Provide Fix Suggestions
+### 3. 提供修复建议
 
-For each error:
-1. Show error location (file:line:column)
-2. Explain the root cause
-3. Provide concrete fix (code snippet)
-4. Ask for confirmation before applying
+对每个错误：
+1. 显示错误位置（file:line:column）
+2. 解释根本原因
+3. 提供具体修复（代码片段）
+4. 应用前请求确认
 
-### 4. Apply Fixes
+### 4. 应用修复
 
-After user confirms:
-1. Apply fixes using StrReplaceFile
-2. Re-run tests to verify
-3. Report results
+用户确认后：
+1. 使用 StrReplaceFile 应用修复
+2. 重新运行测试验证
+3. 报告结果
 
-## Error Patterns & Fixes
+## 常见错误模式与修复
 
-### Common Compilation Errors
+### 常见编译错误
 
 **`expected ',', found '+'`**
-- Cause: Using `+` for string concatenation in `println!`
-- Fix: Use `format!()` or `,` separator
+- 原因：在 `println!` 中使用 `+` 拼接字符串
+- 修复：使用 `format!()` 或 `,` 分隔符
 ```rust
-// Wrong
+// 错误
 println!("\n" + &"=".repeat(50));
-// Fix
+// 修复
 println!("\n{}", "=".repeat(50));
 ```
 
 **`name 'X' is defined multiple times`**
-- Cause: Duplicate imports
-- Fix: Remove duplicate import
+- 原因：重复导入
+- 修复：删除重复导入
 
 **`cannot find derive macro 'Deserialize'`**
-- Cause: Missing serde feature or dependency
-- Fix: Check Cargo.toml for `serde` with `derive` feature
+- 原因：缺少 serde feature 或依赖
+- 修复：检查 Cargo.toml 中是否有带 `derive` feature 的 `serde`
 
-### Test-Specific Issues
+### 测试特定问题
 
-**Test timeouts:** Add `--timeout` or optimize test
-**Assertion failures:** Show expected vs actual
-**Missing test data:** Check fixtures directory
+**测试超时：** 添加 `--timeout` 或优化测试
+**断言失败：** 显示预期值与实际值
+**缺少测试数据：** 检查 fixtures 目录
 
-## Scripts
+## 脚本
 
-Use `scripts/parse_test_output.py` to parse cargo test output:
+使用 `scripts/parse_test_output.py` 解析 cargo test 输出：
 
 ```bash
 cargo test --workspace 2>&1 | python3 .kimi/skills/rust-test-runner/scripts/parse_test_output.py
 ```
 
-This extracts:
-- Error locations
-- Error messages
-- Suggested fixes
+提取内容：
+- 错误位置
+- 错误信息
+- 建议修复
 
-## Best Practices
+## 最佳实践
 
-1. **Always check first**: Run `cargo check` before full test suite for faster feedback
-2. **Incremental fixes**: Fix one error category at a time
-3. **Verify after fix**: Re-run tests after each fix batch
-4. **Clippy too**: Run `cargo clippy` for additional suggestions
+1. **先检查再测试**：运行完整测试前先执行 `cargo check` 获取更快反馈
+2. **增量修复**：一次修复一类错误
+3. **修复后验证**：每批修复后重新运行测试
+4. **也运行 Clippy**：执行 `cargo clippy` 获取额外建议
 
-## Example Interaction
+## 交互示例
 
-User: "运行测试"
+用户："运行测试"
 
-→ Run `cargo test --workspace`
-→ Parse output, find errors
-→ Report: "发现 3 个编译错误："
+→ 运行 `cargo test --workspace`
+→ 解析输出，查找错误
+→ 报告："发现 3 个编译错误："
   1. `tests/src/bin/health_check.rs:121` - println! 中使用了 `+` 拼接字符串
   2. `tests/src/integration/pipeline_tests.rs:364` - 重复导入 `RgbImage`
   3. `litemark-core/tests/integration_test.rs:7` - 缺少 `Deserialize` derive
-→ Provide fixes
-→ Ask: "是否应用这些修复？"
-→ Apply and re-run
+→ 提供修复
+→ 询问："是否应用这些修复？"
+→ 应用并重新运行

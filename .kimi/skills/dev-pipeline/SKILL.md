@@ -122,9 +122,9 @@ Agent(
 方案路径：`{session_dir}/PLAN.md`
 
 实现规范：
-1. **Rust 增量编译策略**：
+1. **Rust 增量编译策略**（参考 AGENTS.md 或 litemark-dev skill）：
    - 修改后先运行 `cargo check -p litemark-core` 快速验证
-   - 然后通过后再运行 `cargo test --workspace --exclude litemark-wasm`
+   - 通过后再运行 `cargo test --workspace --exclude litemark-wasm`
    - 若涉及 WASM，额外运行 `cargo check -p litemark-wasm --target wasm32-unknown-unknown`
    - 长时命令使用 `run_in_background=true`
 
@@ -184,7 +184,7 @@ Agent(
     description="运行测试与静态检查",
     prompt=f"""请运行项目的测试和静态检查工具，收集客观数据。
 
-执行清单：
+执行清单（参考 AGENTS.md 或 litemark-dev skill）：
 1. `cargo test --workspace --exclude litemark-wasm`
 2. `cargo clippy --workspace --all-targets --exclude litemark-wasm`
 3. 如适用：`cargo check -p litemark-wasm --target wasm32-unknown-unknown`
