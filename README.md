@@ -7,7 +7,7 @@ A lightweight photo parameter frame tool for photography enthusiasts.
 - 📸 **Extract EXIF data** - ISO, aperture, shutter speed, focal length, camera, lens
 - 🖼️ **Frame mode** - Add bottom frame with shooting parameters and logo
 - 🎨 **Template system** - JSON-based customizable layouts
-- 🔤 **Professional font rendering** - Using rusttype, supports custom fonts
+- 🔤 **Professional font rendering** - Using ab_glyph, supports custom fonts
 - 🖼️ **Logo support** - Automatic scaling and positioning
 - 📱 **Batch processing** - Process entire directories with concurrency
 - 🔒 **Privacy-first** - All processing happens locally
@@ -60,6 +60,7 @@ export LITEMARK_FONT="/path/to/NotoSansCJK-Regular.ttc"
 - [Architecture](litemark-core/ARCHITECTURE.md) - Technical design and rendering principles
 - [Chinese Font Guide](examples/chinese_font_guide.md) - Chinese font configuration
 - [Project Roadmap](plan.md) - Future plans and milestones
+- [Image Processing Wiki](docs/wiki/README.md) - 📚 Beginner-friendly knowledge base for image processing concepts used in LiteMark
 
 ## Project Structure
 
