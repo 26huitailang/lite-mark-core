@@ -9,6 +9,20 @@ pub(super) struct FontSet {
     pub(super) bold: Option<FontRef<'static>>,
 }
 
+/// Gamma-corrected alpha blending (gamma ≈ 2.0, fast square/sqrt approximation)
+/// Produces smoother text edges than naive linear blending in sRGB space.
+fn blend_gamma_corrected(fg: u8, bg: u8, alpha: f32) -> u8 {
+    let fg_f = fg as f32 / 255.0;
+    let bg_f = bg as f32 / 255.0;
+    // sRGB → linear (approximate with square)
+    let fg_lin = fg_f * fg_f;
+    let bg_lin = bg_f * bg_f;
+    // Blend in linear space
+    let result_lin = fg_lin * alpha + bg_lin * (1.0 - alpha);
+    // Linear → sRGB (approximate with sqrt)
+    (result_lin.sqrt() * 255.0).min(255.0) as u8
+}
+
 impl super::WatermarkRenderer {
     pub(super) fn parse_font_data(data: &[u8]) -> Result<FontRef<'static>, CoreError> {
         if data.len() < 100 {
@@ -108,12 +122,9 @@ impl super::WatermarkRenderer {
                         let py_u32 = py as u32;
                         let bg = image.get_pixel(px_u32, py_u32);
 
-                        let r =
-                            ((color[0] as f32 * v) + (bg[0] as f32 * (1.0 - v))) as u8;
-                        let g =
-                            ((color[1] as f32 * v) + (bg[1] as f32 * (1.0 - v))) as u8;
-                        let b =
-                            ((color[2] as f32 * v) + (bg[2] as f32 * (1.0 - v))) as u8;
+                        let r = blend_gamma_corrected(color[0], bg[0], v);
+                        let g = blend_gamma_corrected(color[1], bg[1], v);
+                        let b = blend_gamma_corrected(color[2], bg[2], v);
 
                         image.put_pixel(px_u32, py_u32, Rgba([r, g, b, 255]));
                     }

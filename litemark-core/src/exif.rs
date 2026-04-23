@@ -220,12 +220,16 @@ fn extract_lens_model(exif: &exif::Exif) -> Option<String> {
     Some(value.trim_matches('"').to_string())
 }
 
-/// 提取拍摄时间
+/// 提取拍摄时间，格式化为简短日期
 fn extract_date_time(exif: &exif::Exif) -> Option<String> {
     let field = exif.get_field(Tag::DateTimeOriginal, In::PRIMARY)?;
-    // Use display_value but remove surrounding quotes if present
     let value = field.display_value().to_string();
-    Some(value.trim_matches('"').to_string())
+    let value = value.trim_matches('"');
+    
+    // EXIF DateTimeOriginal 格式通常为 "2025:10:18 16:13:26"
+    // 提取日期部分并转换为 "2025.10.18" 格式
+    let date_part = value.split_whitespace().next()?;
+    Some(date_part.replace(':', "."))
 }
 
 /// 提取作者/摄影师
