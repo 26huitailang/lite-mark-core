@@ -1,7 +1,7 @@
 use image::{Rgba, RgbaImage};
 
 /// Alpha blend a foreground color over a background pixel
-fn blend_pixel(bg: Rgba<u8>, fg: Rgba<u8>) -> Rgba<u8> {
+pub(super) fn blend_pixel(bg: Rgba<u8>, fg: Rgba<u8>) -> Rgba<u8> {
     let alpha = fg[3] as f32 / 255.0;
     if alpha < 0.01 {
         return bg;

@@ -3,7 +3,7 @@ mod draw;
 mod logo;
 mod text;
 
-use crate::layout::{FontWeight, ItemType, RenderMode, Template};
+use crate::layout::{Anchor, FontWeight, ItemType, RenderMode, Template};
 use image::{DynamicImage, Rgba, RgbaImage};
 use std::collections::HashMap;
 
@@ -224,13 +224,19 @@ impl WatermarkRenderer {
                     }
 
                     let font_size = if orig_item.font_size_ratio > 0.0 {
-                        64.0 * orig_item.font_size_ratio
+                        let short_edge = width.min(height) as f32;
+                        let base_font = (short_edge * 0.012).max(16.0);
+                        base_font * orig_item.font_size_ratio
                     } else if i == 0 {
-                        64.0 * original_template.primary_font_ratio
+                        let short_edge = width.min(height) as f32;
+                        let base_font = (short_edge * 0.012).max(16.0);
+                        base_font * original_template.primary_font_ratio
                     } else {
-                        64.0 * original_template.secondary_font_ratio
+                        let short_edge = width.min(height) as f32;
+                        let base_font = (short_edge * 0.012).max(16.0);
+                        base_font * original_template.secondary_font_ratio
                     };
-                    let font_size = font_size.max(10.0);
+                    let font_size = font_size.max(8.0);
 
                     text_items.push((
                         text.clone(),
@@ -242,9 +248,9 @@ impl WatermarkRenderer {
             }
         }
 
-        // Calculate overlay box dimensions
-        let padding = 24u32;
-        let line_spacing = 8u32;
+        // Calculate overlay box dimensions (scale with image size)
+        let padding = (height as f32 * 0.006).max(6.0).min(20.0) as u32;
+        let line_spacing = (height as f32 * 0.002).max(3.0).min(8.0) as u32;
 
         let mut max_text_width = 0.0f32;
         let mut total_text_height = 0.0f32;
@@ -259,19 +265,47 @@ impl WatermarkRenderer {
 
         let box_width = (max_text_width + padding as f32 * 2.0).ceil() as u32;
         let box_height = (total_text_height + padding as f32 * 2.0).ceil() as u32;
-        let radius = 12u32;
 
-        // Position: bottom-right with margin
-        let margin = 32u32;
-        let box_x = width.saturating_sub(box_width + margin);
+        // Position based on anchor
+        let margin = (width.min(height) as f32 * 0.008).max(6.0).min(24.0) as u32;
+        let box_x = match original_template.anchor {
+            Anchor::BottomLeft => margin,
+            Anchor::BottomCenter => (width.saturating_sub(box_width)) / 2,
+            _ => width.saturating_sub(box_width + margin),
+        };
         let box_y = height.saturating_sub(box_height + margin);
 
-        // Draw rounded rectangle background
-        let bg_color = Rgba([0, 0, 0, 160]); // Semi-transparent black
-        self.render_rounded_rect(&mut rgba_image, box_x, box_y, box_width, box_height, radius, bg_color);
+        // Draw background or gradient mask
+        if let Some(bg) = &original_template.background {
+            let color = if let Some(color_str) = &bg.color {
+                color::parse_color(color_str).unwrap_or(Rgba([0, 0, 0, 255]))
+            } else {
+                Rgba([0, 0, 0, 255])
+            };
+            let alpha = (color[3] as f32 * bg.opacity.clamp(0.0, 1.0)).min(255.0) as u8;
+            let bg_color = Rgba([color[0], color[1], color[2], alpha]);
+            let radius = bg.radius.unwrap_or(12);
+            self.render_rounded_rect(&mut rgba_image, box_x, box_y, box_width, box_height, radius, bg_color);
+        } else {
+            // No background box: draw a subtle bottom gradient mask for readability
+            let mask_height = (box_height + margin * 2).min(height);
+            let mask_y_start = height.saturating_sub(mask_height);
+            for dy in 0..mask_height {
+                let y = mask_y_start + dy;
+                if y >= height { continue; }
+                let progress = dy as f32 / mask_height as f32;
+                let alpha = (progress * progress * 180.0) as u8;
+                let overlay = Rgba([0, 0, 0, alpha]);
+                for x in 0..width {
+                    let original = *rgba_image.get_pixel(x, y);
+                    let blended = draw::blend_pixel(original, overlay);
+                    rgba_image.put_pixel(x, y, blended);
+                }
+            }
+        }
 
-        // Render text inside overlay
-        let mut current_y = box_y + padding + 4; // Slight optical adjustment
+        // Render text
+        let mut current_y = box_y + padding + 4;
         for (text, font_size, color_opt, weight_opt) in &text_items {
             let color = if let Some(color_str) = color_opt {
                 color::parse_color(color_str).unwrap_or(Rgba([255, 255, 255, 255]))
@@ -279,10 +313,19 @@ impl WatermarkRenderer {
                 Rgba([255, 255, 255, 255])
             };
 
+            let text_w = self.text_width(text, *font_size as u32, weight_opt.as_ref());
+            let x = match original_template.anchor {
+                Anchor::BottomCenter | Anchor::Center => {
+                    (box_x as f32 + (box_width as f32 - text_w) / 2.0) as i32
+                }
+                Anchor::BottomLeft => (box_x + padding) as i32,
+                _ => (box_x + padding) as i32,
+            };
+
             self.render_text_simple(
                 &mut rgba_image,
                 text,
-                (box_x + padding) as i32,
+                x,
                 current_y as i32,
                 *font_size as u32,
                 color,
@@ -291,10 +334,15 @@ impl WatermarkRenderer {
             current_y += *font_size as u32 + line_spacing;
         }
 
-        // Render logo if present (top-left of overlay box)
+        // Render logo if present
         if has_logo && logo_data.is_some() {
             let logo_size = 32u32;
-            let logo_x = (box_x + padding) as i32;
+            let logo_x = match original_template.anchor {
+                Anchor::BottomCenter | Anchor::Center => {
+                    (box_x + box_width / 2 - logo_size / 2) as i32
+                }
+                _ => (box_x + padding) as i32,
+            };
             let logo_y = (box_y + padding) as i32;
             self.render_logo_from_bytes(
                 &mut rgba_image,

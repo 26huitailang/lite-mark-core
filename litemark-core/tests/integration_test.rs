@@ -113,7 +113,7 @@ fn test_template_builtin() {
     assert!(templates.iter().any(|t| t.name == "Overlay"));
 
     let classic = templates.iter().find(|t| t.name == "Classic").unwrap();
-    assert_eq!(classic.items.len(), 4); // Logo + 3个文本项
+    assert_eq!(classic.items.len(), 5); // Logo + Author + DateTime + Camera·Lens + Parameters
 }
 
 #[test]

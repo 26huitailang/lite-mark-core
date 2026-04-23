@@ -73,6 +73,8 @@ pub enum Anchor {
     BottomLeft,
     #[serde(rename = "bottom-right")]
     BottomRight,
+    #[serde(rename = "bottom-center")]
+    BottomCenter,
     #[serde(rename = "center")]
     Center,
 }
