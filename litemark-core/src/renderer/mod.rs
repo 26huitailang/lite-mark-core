@@ -225,18 +225,18 @@ impl WatermarkRenderer {
 
                     let font_size = if orig_item.font_size_ratio > 0.0 {
                         let short_edge = width.min(height) as f32;
-                        let base_font = (short_edge * 0.012).max(16.0);
+                        let base_font = (short_edge * 0.042).max(20.0);
                         base_font * orig_item.font_size_ratio
                     } else if i == 0 {
                         let short_edge = width.min(height) as f32;
-                        let base_font = (short_edge * 0.012).max(16.0);
+                        let base_font = (short_edge * 0.042).max(20.0);
                         base_font * original_template.primary_font_ratio
                     } else {
                         let short_edge = width.min(height) as f32;
-                        let base_font = (short_edge * 0.012).max(16.0);
+                        let base_font = (short_edge * 0.042).max(20.0);
                         base_font * original_template.secondary_font_ratio
                     };
-                    let font_size = font_size.max(8.0);
+                    let font_size = font_size.max(10.0);
 
                     text_items.push((
                         text.clone(),
