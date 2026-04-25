@@ -38,12 +38,30 @@ fn test_standard_pipeline() {
     );
     assert!(render_result.is_ok(), "渲染应成功");
 
-    // 5. 编码输出
+    // 5. 验证尺寸契约
+    let original_height = 600u32;
+    let short_edge = 800u32.min(original_height) as f32;
+    let ratio = template.frame_height_ratio.clamp(0.05, 0.20);
+    let calculated = (short_edge * ratio) as u32;
+    let expected_frame = calculated.max(80);
+    assert_eq!(
+        image.height(),
+        original_height + expected_frame,
+        "边框高度必须符合公式：short_edge({}) * ratio({}) = {}，max(80) = {}",
+        short_edge, ratio, calculated, expected_frame
+    );
+    assert_eq!(image.width(), 800, "宽度必须保持不变");
+
+    // 6. 编码输出
     let encode_result = litemark_core::image_io::encode_image(&image, ImageFormat::Jpeg);
     assert!(encode_result.is_ok(), "编码应成功");
 
     let jpeg_data = encode_result.unwrap();
-    assert!(!jpeg_data.is_empty());
+    assert!(
+        jpeg_data.len() > 1024,
+        "编码后的 JPEG 必须大于 1KB（空图检测），实际 {} bytes",
+        jpeg_data.len()
+    );
 }
 
 /// 测试不同尺寸图像的完整处理流程
@@ -80,6 +98,19 @@ fn test_pipeline_various_sizes() {
             width,
             height
         );
+
+        // 验证边框高度契约
+        let short_edge = width.min(height) as f32;
+        let ratio = template.frame_height_ratio.clamp(0.05, 0.20);
+        let calculated = (short_edge * ratio) as u32;
+        let expected_frame = calculated.max(80);
+        assert_eq!(
+            image.height(),
+            height + expected_frame,
+            "尺寸 {}x{} 的边框高度应为 {}",
+            width, height, expected_frame
+        );
+        assert_eq!(image.width(), width, "宽度必须保持不变");
     }
 }
 
@@ -103,6 +134,11 @@ fn test_pipeline_missing_exif() {
     );
 
     assert!(result.is_ok(), "无 EXIF 数据也应能处理");
+
+    // 验证输出可编码且非空
+    let encoded = litemark_core::image_io::encode_image(&image, ImageFormat::Jpeg);
+    assert!(encoded.is_ok(), "无 EXIF 渲染后应能编码");
+    assert!(encoded.unwrap().len() > 1024, "编码结果必须大于 1KB");
 }
 
 /// 测试部分 EXIF 数据的处理流程
@@ -183,10 +219,17 @@ fn test_pipeline_image_size_change() {
 
     // 宽度应保持不变
     assert_eq!(image.width(), original_width, "宽度应保持不变");
-    // 高度应增加（添加了水印边框）
-    assert!(
-        image.height() > original_height,
-        "高度应增加"
+
+    // 高度应精确增加（契约断言）
+    let short_edge = original_width.min(original_height) as f32;
+    let ratio = template.frame_height_ratio.clamp(0.05, 0.20);
+    let calculated = (short_edge * ratio) as u32;
+    let expected_frame = calculated.max(80);
+    assert_eq!(
+        image.height(),
+        original_height + expected_frame,
+        "高度应精确增加 {}px（short_edge={} * ratio={} = {}, max(80)）",
+        expected_frame, short_edge, ratio, calculated
     );
 }
 

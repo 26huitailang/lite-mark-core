@@ -532,6 +532,7 @@ impl WatermarkRenderer {
 mod tests {
     use super::*;
     use crate::layout::{Anchor, TemplateItem};
+    use image::GenericImageView;
 
     #[test]
     fn test_renderer_creation() {
@@ -545,7 +546,9 @@ mod tests {
     #[test]
     fn test_render_watermark_basic() {
         let renderer = WatermarkRenderer::new().unwrap();
-        let mut image = DynamicImage::ImageRgb8(image::RgbImage::from_fn(800, 600, |_x, _y| {
+        let original_width = 800;
+        let original_height = 600;
+        let mut image = DynamicImage::ImageRgb8(image::RgbImage::from_fn(original_width, original_height, |_x, _y| {
             image::Rgb([128, 128, 128])
         }));
 
@@ -577,7 +580,205 @@ mod tests {
             renderer.render_watermark_with_logo_bytes(&mut image, &template, &variables, None);
         assert!(result.is_ok());
 
-        // 检查图像尺寸是否增加了边框
-        assert!(image.height() > 600);
+        // 契约 1：边框高度 = short_edge * ratio.clamp(0.05, 0.20)，且 >= 80
+        let short_edge = original_width.min(original_height) as f32;
+        let expected_frame = (short_edge * template.frame_height_ratio.clamp(0.05, 0.20)) as u32;
+        let expected_frame = expected_frame.max(80);
+        assert_eq!(
+            image.height(),
+            original_height + expected_frame,
+            "边框高度必须符合公式：short_edge({}) * ratio({}) = {}，max(80) = {}，\n\
+             期望总高度 = {} + {} = {}，实际 = {}",
+            short_edge, template.frame_height_ratio, (short_edge * template.frame_height_ratio) as u32,
+            expected_frame, original_height, expected_frame, original_height + expected_frame,
+            image.height()
+        );
+
+        // 契约 2：宽度不变
+        assert_eq!(image.width(), original_width, "非 Overlay 模式下宽度必须保持不变");
+
+        // 契约 3：边框区域有可见内容（非透明）
+        let border_pixel = image.get_pixel(original_width / 2, original_height + 5);
+        assert_ne!(
+            border_pixel.0,
+            [0, 0, 0, 0],
+            "边框区域必须有可见内容，不能是全透明"
+        );
+    }
+
+    #[test]
+    fn test_render_watermark_overlay_preserves_size() {
+        let renderer = WatermarkRenderer::new().unwrap();
+        let original_width = 800;
+        let original_height = 600;
+        let mut image = DynamicImage::ImageRgb8(image::RgbImage::from_fn(original_width, original_height, |_x, _y| {
+            image::Rgb([128, 128, 128])
+        }));
+
+        let template = Template {
+            name: "OverlayTest".to_string(),
+            anchor: Anchor::BottomLeft,
+            padding: 20,
+            items: vec![TemplateItem {
+                item_type: ItemType::Text,
+                value: "{Author}".to_string(),
+                font_size: 16,
+                font_size_ratio: 0.20,
+                weight: Some(FontWeight::Bold),
+                color: Some("#FFFFFF".to_string()),
+            }],
+            background: None,
+            frame_height_ratio: 0.10,
+            logo_size_ratio: 0.0,
+            primary_font_ratio: 0.20,
+            secondary_font_ratio: 0.14,
+            padding_ratio: 0.10,
+            render_mode: RenderMode::Overlay,
+        };
+
+        let mut variables = HashMap::new();
+        variables.insert("Author".to_string(), "Test".to_string());
+
+        let result = renderer.render_watermark_with_logo_bytes(&mut image, &template, &variables, None);
+        assert!(result.is_ok());
+
+        // Overlay 模式下尺寸必须完全不变
+        assert_eq!(image.width(), original_width, "Overlay 模式宽度必须不变");
+        assert_eq!(image.height(), original_height, "Overlay 模式高度必须不变");
+    }
+
+    #[test]
+    fn test_render_watermark_empty_variables_does_not_panic() {
+        let renderer = WatermarkRenderer::new().unwrap();
+        let mut image = DynamicImage::ImageRgb8(image::RgbImage::from_fn(800, 600, |_x, _y| {
+            image::Rgb([128, 128, 128])
+        }));
+
+        let template = Template {
+            name: "Test".to_string(),
+            anchor: Anchor::BottomLeft,
+            padding: 20,
+            items: vec![TemplateItem {
+                item_type: ItemType::Text,
+                value: "{Author}".to_string(),
+                font_size: 16,
+                font_size_ratio: 0.20,
+                weight: Some(FontWeight::Bold),
+                color: Some("#000000".to_string()),
+            }],
+            background: None,
+            frame_height_ratio: 0.10,
+            logo_size_ratio: 0.35,
+            primary_font_ratio: 0.20,
+            secondary_font_ratio: 0.14,
+            padding_ratio: 0.10,
+            render_mode: RenderMode::BottomFrame,
+        };
+
+        let variables = HashMap::new(); // 空变量
+
+        let result = renderer.render_watermark_with_logo_bytes(&mut image, &template, &variables, None);
+        assert!(result.is_ok(), "空变量不应导致 panic");
+
+        // 验证输出可编码
+        let encoded = crate::image_io::encode_image(&image, image::ImageFormat::Jpeg);
+        assert!(encoded.is_ok(), "空变量渲染后应能编码为 JPEG");
+        assert!(
+            encoded.unwrap().len() > 1024,
+            "编码后的 JPEG 必须大于 1KB（空图检测）"
+        );
+    }
+
+    #[test]
+    fn test_parse_font_data_empty_returns_error() {
+        let result = WatermarkRenderer::parse_font_data(&[]);
+        assert!(result.is_err(), "空字体数据应返回错误");
+    }
+
+    #[test]
+    fn test_parse_font_data_invalid_returns_error() {
+        let invalid = vec![0x00, 0x01, 0x02, 0x03];
+        let result = WatermarkRenderer::parse_font_data(&invalid);
+        assert!(result.is_err(), "无效字体数据应返回错误");
+    }
+
+    #[test]
+    fn test_text_width_empty_is_zero() {
+        let renderer = WatermarkRenderer::new().unwrap();
+        let width = renderer.text_width("", 16, None);
+        assert_eq!(width, 0.0, "空字符串宽度必须为 0");
+    }
+
+    #[test]
+    fn test_text_width_nonzero_for_ascii() {
+        let renderer = WatermarkRenderer::new().unwrap();
+        let width = renderer.text_width("A", 16, None);
+        assert!(width > 0.0, "ASCII 字符宽度必须大于 0");
+    }
+
+    #[test]
+    fn test_text_width_nonzero_for_chinese() {
+        let renderer = WatermarkRenderer::new().unwrap();
+        let width = renderer.text_width("中", 16, None);
+        assert!(width > 0.0, "中文字符宽度必须大于 0");
+    }
+
+    #[test]
+    fn test_select_font_bold_fallback_to_regular() {
+        let renderer = WatermarkRenderer::new().unwrap();
+        let w_bold = renderer.text_width("A", 16, Some(&FontWeight::Bold));
+        let w_normal = renderer.text_width("A", 16, Some(&FontWeight::Normal));
+        assert_eq!(w_bold, w_normal, "无 Bold 字体时，Bold 和 Normal 应使用同一字体");
+    }
+
+    #[test]
+    fn test_render_text_simple_changes_pixels() {
+        let renderer = WatermarkRenderer::new().unwrap();
+        let mut image = RgbaImage::from_pixel(100, 100, Rgba([0, 0, 0, 255]));
+
+        let before_count = image.pixels().filter(|p| p.0 != [0, 0, 0, 255]).count();
+        assert_eq!(before_count, 0, "初始画布应全黑");
+
+        renderer.render_text_simple(&mut image, "A", 10, 10, 16, Rgba([255, 255, 255, 255]), None);
+
+        let after_count = image.pixels().filter(|p| p.0 != [0, 0, 0, 255]).count();
+        assert!(after_count > 0, "渲染文本后画布应有像素变化");
+    }
+
+    #[test]
+    fn test_render_logo_from_bytes_valid_changes_pixels() {
+        let renderer = WatermarkRenderer::new().unwrap();
+        let mut image = RgbaImage::from_pixel(100, 100, Rgba([0, 0, 0, 255]));
+
+        // 动态生成一个 4x4 红色不透明 Logo（不依赖外部文件的透明度）
+        let logo_img = image::RgbaImage::from_pixel(4, 4, Rgba([255, 0, 0, 255]));
+        let mut logo_bytes = Vec::new();
+        logo_img
+            .write_to(&mut std::io::Cursor::new(&mut logo_bytes), image::ImageFormat::Png)
+            .unwrap();
+
+        let before_count = image.pixels().filter(|p| p.0 != [0, 0, 0, 255]).count();
+        assert_eq!(before_count, 0, "初始画布应全黑");
+
+        renderer
+            .render_logo_from_bytes(&mut image, &logo_bytes, 50, 50, 32)
+            .unwrap();
+
+        let after_count = image.pixels().filter(|p| p.0 != [0, 0, 0, 255]).count();
+        assert!(after_count > 0, "有效 Logo 渲染后画布应有像素变化");
+    }
+
+    #[test]
+    fn test_render_logo_from_bytes_invalid_silently_skips() {
+        let renderer = WatermarkRenderer::new().unwrap();
+        let mut image = RgbaImage::from_pixel(100, 100, Rgba([0, 0, 0, 255]));
+        let invalid_logo = vec![0x00, 0x01, 0x02, 0x03];
+
+        let result = renderer.render_logo_from_bytes(&mut image, &invalid_logo, 50, 50, 32);
+        assert!(result.is_ok(), "无效 Logo 数据应静默跳过，不 panic");
+
+        // 确保图像没有任何变化
+        let changed_count = image.pixels().filter(|p| p.0 != [0, 0, 0, 255]).count();
+        assert_eq!(changed_count, 0, "无效 Logo 不应修改画布");
     }
 }

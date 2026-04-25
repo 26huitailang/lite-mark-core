@@ -135,3 +135,43 @@ impl super::WatermarkRenderer {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_blend_gamma_corrected_alpha_zero_returns_bg() {
+        assert_eq!(blend_gamma_corrected(255, 100, 0.0), 100, "alpha=0 时必须返回背景色");
+    }
+
+    #[test]
+    fn test_blend_gamma_corrected_alpha_one_returns_fg() {
+        assert_eq!(blend_gamma_corrected(255, 100, 1.0), 255, "alpha=1 时必须返回前景色");
+    }
+
+    #[test]
+    fn test_blend_gamma_corrected_same_color_returns_same() {
+        // fg=128, bg=128, alpha=0.5
+        // fg_lin = bg_lin = (128/255)^2 ≈ 0.25196
+        // result_lin = 0.25196 * 0.5 + 0.25196 * 0.5 = 0.25196
+        // result = sqrt(0.25196) * 255 = 0.50196 * 255 = 128
+        assert_eq!(blend_gamma_corrected(128, 128, 0.5), 128, "同色混合应保持不变");
+    }
+
+    #[test]
+    fn test_blend_gamma_corrected_half_blend_black_to_white() {
+        // fg=255(white), bg=0(black), alpha=0.5
+        // fg_lin=1, bg_lin=0, result_lin=0.5, result=sqrt(0.5)*255≈180
+        let result = blend_gamma_corrected(255, 0, 0.5);
+        assert_eq!(result, 180, "黑白各 50% gamma 混合应为 180");
+    }
+
+    #[test]
+    fn test_blend_gamma_corrected_half_blend_white_to_black() {
+        // fg=0(black), bg=255(white), alpha=0.5
+        // fg_lin=0, bg_lin=1, result_lin=0.5, result=180
+        let result = blend_gamma_corrected(0, 255, 0.5);
+        assert_eq!(result, 180, "白黑各 50% gamma 混合应为 180");
+    }
+}
