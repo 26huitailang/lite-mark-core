@@ -28,9 +28,17 @@ enum ImagePattern {
     /// 对角渐变
     DiagonalGradient([u8; 3], [u8; 3]),
     /// 棋盘格
-    Checkerboard { color1: [u8; 3], color2: [u8; 3], size: u32 },
+    Checkerboard {
+        color1: [u8; 3],
+        color2: [u8; 3],
+        size: u32,
+    },
     /// 条纹
-    Stripes { color1: [u8; 3], color2: [u8; 3], width: u32 },
+    Stripes {
+        color1: [u8; 3],
+        color2: [u8; 3],
+        width: u32,
+    },
 }
 
 impl ImagePattern {
@@ -73,7 +81,11 @@ impl ImagePattern {
                 });
                 DynamicImage::ImageRgb8(img)
             }
-            ImagePattern::Checkerboard { color1, color2, size } => {
+            ImagePattern::Checkerboard {
+                color1,
+                color2,
+                size,
+            } => {
                 let img = ImageBuffer::from_fn(width, height, |x, y| {
                     let cx = x / size;
                     let cy = y / size;
@@ -85,7 +97,11 @@ impl ImagePattern {
                 });
                 DynamicImage::ImageRgb8(img)
             }
-            ImagePattern::Stripes { color1, color2, width: stripe_width } => {
+            ImagePattern::Stripes {
+                color1,
+                color2,
+                width: stripe_width,
+            } => {
                 let img = ImageBuffer::from_fn(width, height, |x, _| {
                     if (x / stripe_width) % 2 == 0 {
                         Rgb(*color1)
@@ -102,15 +118,15 @@ impl ImagePattern {
 /// 获取测试图片尺寸矩阵
 fn get_test_dimensions() -> Vec<(u32, u32, &'static str)> {
     vec![
-        (100, 100, "tiny"),          // 极小
-        (400, 300, "small"),         // 小图
-        (600, 800, "portrait"),      // 竖屏
-        (800, 600, "landscape"),     // 横屏
-        (1024, 1024, "square"),      // 正方形
-        (1920, 1080, "fhd"),         // 全高清
-        (3840, 2160, "4k"),          // 4K
-        (7680, 4320, "8k"),          // 8K
-        (10000, 10000, "huge"),      // 极大
+        (100, 100, "tiny"),      // 极小
+        (400, 300, "small"),     // 小图
+        (600, 800, "portrait"),  // 竖屏
+        (800, 600, "landscape"), // 横屏
+        (1024, 1024, "square"),  // 正方形
+        (1920, 1080, "fhd"),     // 全高清
+        (3840, 2160, "4k"),      // 4K
+        (7680, 4320, "8k"),      // 8K
+        (10000, 10000, "huge"),  // 极大
     ]
 }
 
@@ -120,9 +136,26 @@ fn generate_basic_images(output_dir: &Path) -> Result<Vec<TestImageConfig>> {
 
     let dimensions = get_test_dimensions();
     let patterns = vec![
-        ("gradient", ImagePattern::DiagonalGradient([255, 100, 50], [50, 100, 255])),
-        ("checker", ImagePattern::Checkerboard { color1: [200, 200, 200], color2: [50, 50, 50], size: 50 }),
-        ("stripes", ImagePattern::Stripes { color1: [255, 0, 0], color2: [0, 0, 255], width: 40 }),
+        (
+            "gradient",
+            ImagePattern::DiagonalGradient([255, 100, 50], [50, 100, 255]),
+        ),
+        (
+            "checker",
+            ImagePattern::Checkerboard {
+                color1: [200, 200, 200],
+                color2: [50, 50, 50],
+                size: 50,
+            },
+        ),
+        (
+            "stripes",
+            ImagePattern::Stripes {
+                color1: [255, 0, 0],
+                color2: [0, 0, 255],
+                width: 40,
+            },
+        ),
     ];
 
     let mut configs = Vec::new();
@@ -146,7 +179,7 @@ fn generate_basic_images(output_dir: &Path) -> Result<Vec<TestImageConfig>> {
 /// 保存测试图片
 fn save_test_image(config: &TestImageConfig, output_dir: &Path) -> Result<PathBuf> {
     let img = config.pattern.generate(config.width, config.height);
-    
+
     let ext = match config.format {
         ImageFormat::Jpeg => "jpg",
         ImageFormat::Png => "png",
@@ -158,7 +191,7 @@ fn save_test_image(config: &TestImageConfig, output_dir: &Path) -> Result<PathBu
     let path = output_dir.join(&filename);
 
     let mut file = fs::File::create(&path)?;
-    
+
     match config.format {
         ImageFormat::Jpeg => {
             img.write_to(&mut file, ImageFormat::Jpeg)?;
@@ -187,7 +220,7 @@ fn main() -> Result<()> {
     println!("生成基础测试图片...");
     let jpeg_dir = base_dir.join("jpeg");
     let configs = generate_basic_images(&jpeg_dir)?;
-    
+
     for config in &configs {
         save_test_image(config, &jpeg_dir)?;
     }
@@ -196,7 +229,7 @@ fn main() -> Result<()> {
     println!("\n生成 PNG 测试图片...");
     let png_dir = base_dir.join("png");
     fs::create_dir_all(&png_dir)?;
-    
+
     for config in &configs {
         let png_config = TestImageConfig {
             name: config.name.clone(),

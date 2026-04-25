@@ -119,7 +119,10 @@ fn main() -> Result<()> {
 
     // 总结
     println!("\n{}", "=".repeat(50));
-    println!("健康检查完成: {} 通过, {} 失败", checks_passed, checks_failed);
+    println!(
+        "健康检查完成: {} 通过, {} 失败",
+        checks_passed, checks_failed
+    );
 
     if checks_failed > 0 {
         std::process::exit(1);
@@ -134,7 +137,10 @@ fn check_test_images() -> Result<usize> {
     let images_dir = Path::new(manifest_dir).join("fixtures/images");
 
     if !images_dir.exists() {
-        return Err(anyhow::anyhow!("测试图片目录不存在: {}", images_dir.display()));
+        return Err(anyhow::anyhow!(
+            "测试图片目录不存在: {}",
+            images_dir.display()
+        ));
     }
 
     let mut count = 0;
@@ -307,10 +313,16 @@ fn check_dependencies() -> Result<()> {
     let cargo_toml = Path::new(manifest_dir).join("Cargo.toml");
 
     let content = fs::read_to_string(&cargo_toml)?;
-    
+
     // 验证基本依赖存在
-    let required_deps = vec!["litemark-core", "litemark-cli", "image", "serde", "tempfile"];
-    
+    let required_deps = vec![
+        "litemark-core",
+        "litemark-cli",
+        "image",
+        "serde",
+        "tempfile",
+    ];
+
     for dep in required_deps {
         if !content.contains(dep) {
             return Err(anyhow::anyhow!("缺少依赖: {}", dep));

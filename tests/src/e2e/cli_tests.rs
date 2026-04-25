@@ -42,9 +42,12 @@ fn test_cli_templates_command() {
 fn test_cli_single_invalid_input() {
     let mut cmd = Command::cargo_bin("litemark-cli").expect("找不到 litemark-cli");
     cmd.arg("add")
-        .arg("-i").arg("/nonexistent/path/image.jpg")
-        .arg("-o").arg("/tmp/output.jpg")
-        .arg("-t").arg("classic");
+        .arg("-i")
+        .arg("/nonexistent/path/image.jpg")
+        .arg("-o")
+        .arg("/tmp/output.jpg")
+        .arg("-t")
+        .arg("classic");
     cmd.assert()
         .failure()
         .stderr(predicate::str::contains("Error"));
@@ -59,24 +62,28 @@ fn test_cli_single_invalid_template() {
 
     let mut cmd = Command::cargo_bin("litemark-cli").expect("找不到 litemark-cli");
     cmd.arg("add")
-        .arg("-i").arg(&input_path)
-        .arg("-o").arg(&output_path)
-        .arg("-t").arg("nonexistent_template");
-    
+        .arg("-i")
+        .arg(&input_path)
+        .arg("-o")
+        .arg(&output_path)
+        .arg("-t")
+        .arg("nonexistent_template");
+
     // 应失败或警告无效模板
     let output = cmd.output().expect("运行命令失败");
     let stderr = String::from_utf8_lossy(&output.stderr);
     let stdout = String::from_utf8_lossy(&output.stdout);
-    
+
     assert!(
-        !output.status.success() || 
-        stderr.contains("Error") || 
-        stderr.contains("error") ||
-        stdout.contains("Error") ||
-        stdout.contains("error") ||
-        stdout.contains("available"),
+        !output.status.success()
+            || stderr.contains("Error")
+            || stderr.contains("error")
+            || stdout.contains("Error")
+            || stdout.contains("error")
+            || stdout.contains("available"),
         "无效模板应产生错误或警告: stderr={}, stdout={}",
-        stderr, stdout
+        stderr,
+        stdout
     );
 }
 
@@ -97,9 +104,12 @@ fn test_cli_batch_invalid_input() {
 
     let mut cmd = Command::cargo_bin("litemark-cli").expect("找不到 litemark-cli");
     cmd.arg("batch")
-        .arg("-i").arg("/nonexistent/directory")
-        .arg("-o").arg(&output_dir)
-        .arg("-t").arg("classic");
+        .arg("-i")
+        .arg("/nonexistent/directory")
+        .arg("-o")
+        .arg(&output_dir)
+        .arg("-t")
+        .arg("classic");
     cmd.assert()
         .failure()
         .stderr(predicate::str::contains("Error"));

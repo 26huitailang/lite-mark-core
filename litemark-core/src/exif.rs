@@ -132,7 +132,7 @@ impl ExifData {
 /// ```
 pub fn extract_from_bytes(image_data: &[u8]) -> Result<ExifData, Box<dyn std::error::Error>> {
     let mut cursor = Cursor::new(image_data);
-    
+
     // 解析 EXIF 数据
     let exifreader = Reader::new();
     let exif = match exifreader.read_from_container(&mut cursor) {
@@ -167,9 +167,10 @@ fn extract_iso(exif: &exif::Exif) -> Option<u32> {
 fn extract_aperture(exif: &exif::Exif) -> Option<f64> {
     let field = exif.get_field(Tag::FNumber, In::PRIMARY)?;
     if let Value::Rational(rationals) = &field.value
-        && let Some(rational) = rationals.first() {
-            return Some(rational.num as f64 / rational.denom as f64);
-        }
+        && let Some(rational) = rationals.first()
+    {
+        return Some(rational.num as f64 / rational.denom as f64);
+    }
     None
 }
 
@@ -177,10 +178,11 @@ fn extract_aperture(exif: &exif::Exif) -> Option<f64> {
 fn extract_shutter_speed(exif: &exif::Exif) -> Option<String> {
     let field = exif.get_field(Tag::ExposureTime, In::PRIMARY)?;
     if let Value::Rational(rationals) = &field.value
-        && let Some(rational) = rationals.first() {
-            let exposure_time = rational.num as f64 / rational.denom as f64;
-            return Some(format_shutter_speed(exposure_time));
-        }
+        && let Some(rational) = rationals.first()
+    {
+        let exposure_time = rational.num as f64 / rational.denom as f64;
+        return Some(format_shutter_speed(exposure_time));
+    }
     None
 }
 
@@ -198,9 +200,10 @@ fn format_shutter_speed(exposure_time: f64) -> String {
 fn extract_focal_length(exif: &exif::Exif) -> Option<f64> {
     let field = exif.get_field(Tag::FocalLength, In::PRIMARY)?;
     if let Value::Rational(rationals) = &field.value
-        && let Some(rational) = rationals.first() {
-            return Some(rational.num as f64 / rational.denom as f64);
-        }
+        && let Some(rational) = rationals.first()
+    {
+        return Some(rational.num as f64 / rational.denom as f64);
+    }
     None
 }
 
@@ -225,7 +228,7 @@ fn extract_date_time(exif: &exif::Exif) -> Option<String> {
     let field = exif.get_field(Tag::DateTimeOriginal, In::PRIMARY)?;
     let value = field.display_value().to_string();
     let value = value.trim_matches('"');
-    
+
     // EXIF DateTimeOriginal 格式通常为 "2025:10:18 16:13:26"
     // 提取日期部分并转换为 "2025.10.18" 格式
     let date_part = value.split_whitespace().next()?;

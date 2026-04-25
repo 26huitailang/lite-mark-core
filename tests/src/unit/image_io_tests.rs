@@ -17,8 +17,7 @@ fn test_jpeg_encode_decode_roundtrip() {
     assert!(jpeg_data.len() > 100, "JPEG 数据应有合理大小");
 
     // 解码
-    let decoded = litemark_core::image_io::decode_image(&jpeg_data)
-        .expect("JPEG 解码失败");
+    let decoded = litemark_core::image_io::decode_image(&jpeg_data).expect("JPEG 解码失败");
 
     assert_eq!(decoded.width(), 200);
     assert_eq!(decoded.height(), 150);
@@ -30,14 +29,13 @@ fn test_png_encode_decode_roundtrip() {
     let test_image = create_test_image(200, 150, [50, 100, 255]);
 
     // 编码为 PNG
-    let png_data = litemark_core::image_io::encode_image(&test_image, ImageFormat::Png)
-        .expect("PNG 编码失败");
+    let png_data =
+        litemark_core::image_io::encode_image(&test_image, ImageFormat::Png).expect("PNG 编码失败");
 
     assert!(!png_data.is_empty());
 
     // 解码
-    let decoded = litemark_core::image_io::decode_image(&png_data)
-        .expect("PNG 解码失败");
+    let decoded = litemark_core::image_io::decode_image(&png_data).expect("PNG 解码失败");
 
     assert_eq!(decoded.width(), 200);
     assert_eq!(decoded.height(), 150);
@@ -55,8 +53,7 @@ fn test_webp_encode_decode_roundtrip() {
     assert!(!webp_data.is_empty());
 
     // 解码
-    let decoded = litemark_core::image_io::decode_image(&webp_data)
-        .expect("WebP 解码失败");
+    let decoded = litemark_core::image_io::decode_image(&webp_data).expect("WebP 解码失败");
 
     assert_eq!(decoded.width(), 200);
     assert_eq!(decoded.height(), 150);
@@ -123,23 +120,17 @@ fn test_decode_invalid_data() {
 /// 测试不同尺寸图像编解码
 #[test]
 fn test_encode_decode_various_sizes() {
-    let sizes = vec![
-        (1, 1),
-        (100, 100),
-        (1920, 1080),
-        (1, 1000),
-        (1000, 1),
-    ];
+    let sizes = vec![(1, 1), (100, 100), (1920, 1080), (1, 1000), (1000, 1)];
 
     for (width, height) in sizes {
         let image = create_test_image(width, height, [128, 128, 128]);
-        
+
         let jpeg_data = litemark_core::image_io::encode_image(&image, ImageFormat::Jpeg)
             .unwrap_or_else(|_| panic!("编码 {}x{} 失败", width, height));
-        
+
         let decoded = litemark_core::image_io::decode_image(&jpeg_data)
             .unwrap_or_else(|_| panic!("解码 {}x{} 失败", width, height));
-        
+
         assert_eq!(decoded.width(), width, "宽度应匹配");
         assert_eq!(decoded.height(), height, "高度应匹配");
     }
@@ -150,13 +141,12 @@ fn test_encode_decode_various_sizes() {
 fn test_decode_large_image() {
     // 创建一个较大的图像（但不要太大使测试变慢）
     let image = create_test_image(4000, 3000, [64, 128, 192]);
-    
-    let jpeg_data = litemark_core::image_io::encode_image(&image, ImageFormat::Jpeg)
-        .expect("大图像编码失败");
-    
-    let decoded = litemark_core::image_io::decode_image(&jpeg_data)
-        .expect("大图像解码失败");
-    
+
+    let jpeg_data =
+        litemark_core::image_io::encode_image(&image, ImageFormat::Jpeg).expect("大图像编码失败");
+
+    let decoded = litemark_core::image_io::decode_image(&jpeg_data).expect("大图像解码失败");
+
     assert_eq!(decoded.width(), 4000);
     assert_eq!(decoded.height(), 3000);
 }
@@ -169,8 +159,8 @@ fn test_rgb_image_encoding() {
     });
     let image = DynamicImage::ImageRgb8(img);
 
-    let jpeg_data = litemark_core::image_io::encode_image(&image, ImageFormat::Jpeg)
-        .expect("RGB 编码失败");
+    let jpeg_data =
+        litemark_core::image_io::encode_image(&image, ImageFormat::Jpeg).expect("RGB 编码失败");
 
     assert!(!jpeg_data.is_empty());
 }
@@ -185,14 +175,11 @@ fn test_jpeg_encoding_quality() {
     });
     let image = DynamicImage::ImageRgb8(img);
 
-    let jpeg_data = litemark_core::image_io::encode_image(&image, ImageFormat::Jpeg)
-        .expect("JPEG 编码失败");
+    let jpeg_data =
+        litemark_core::image_io::encode_image(&image, ImageFormat::Jpeg).expect("JPEG 编码失败");
 
     // JPEG 质量为 90%，文件大小应合理
-    assert!(
-        jpeg_data.len() > 1000,
-        "500x500 JPEG 应大于 1KB"
-    );
+    assert!(jpeg_data.len() > 1000, "500x500 JPEG 应大于 1KB");
 }
 
 /// 辅助函数：创建纯色测试图像

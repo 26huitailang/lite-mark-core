@@ -3,7 +3,9 @@
 //! 使用 JSON Lines 格式定义回归测试用例
 
 use litemark_core::exif::ExifData;
-use litemark_core::layout::{RenderMode, self, Anchor, FontWeight, ItemType, Template, TemplateItem};
+use litemark_core::layout::{
+    self, Anchor, FontWeight, ItemType, RenderMode, Template, TemplateItem,
+};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
@@ -211,20 +213,22 @@ fn run_regression_case(case: &RegressionCase) -> Result<(), String> {
     if case.expected.success {
         // 验证输出包含预期内容
         if let Some(ref expected_contains) = case.expected.output_contains
-            && !output.contains(expected_contains) {
-                return Err(format!(
-                    "输出不包含 '{}', 实际输出: '{}'",
-                    expected_contains, output
-                ));
-            }
+            && !output.contains(expected_contains)
+        {
+            return Err(format!(
+                "输出不包含 '{}', 实际输出: '{}'",
+                expected_contains, output
+            ));
+        }
 
         if let Some(ref expected_text) = case.expected.text_contains
-            && !output.contains(expected_text) {
-                return Err(format!(
-                    "输出不包含 '{}', 实际输出: '{}'",
-                    expected_text, output
-                ));
-            }
+            && !output.contains(expected_text)
+        {
+            return Err(format!(
+                "输出不包含 '{}', 实际输出: '{}'",
+                expected_text, output
+            ));
+        }
     }
 
     Ok(())
@@ -253,15 +257,22 @@ fn test_exif_formatting_regression() {
         data.aperture = Some(1.4);
         let vars = data.to_variables();
         let value = vars.get("Aperture").expect("应有 Aperture 变量");
-        assert!(value.contains("f/1.4"), "光圈应格式化为 f/1.4，实际是 {}", value);
+        assert!(
+            value.contains("f/1.4"),
+            "光圈应格式化为 f/1.4，实际是 {}",
+            value
+        );
     }
     {
         let mut data = ExifData::new();
         data.aperture = Some(22.0);
         let vars = data.to_variables();
         let value = vars.get("Aperture").expect("应有 Aperture 变量");
-        assert!(value.contains("f/22") || value.contains("f/22.0"), 
-                "光圈应格式化为 f/22 或 f/22.0，实际是 {}", value);
+        assert!(
+            value.contains("f/22") || value.contains("f/22.0"),
+            "光圈应格式化为 f/22 或 f/22.0，实际是 {}",
+            value
+        );
     }
 
     // 测试焦距格式化
@@ -270,14 +281,22 @@ fn test_exif_formatting_regression() {
         data.focal_length = Some(24.0);
         let vars = data.to_variables();
         let value = vars.get("Focal").expect("应有 Focal 变量");
-        assert!(value.contains("24mm"), "焦距应格式化为 24mm，实际是 {}", value);
+        assert!(
+            value.contains("24mm"),
+            "焦距应格式化为 24mm，实际是 {}",
+            value
+        );
     }
     {
         let mut data = ExifData::new();
         data.focal_length = Some(200.0);
         let vars = data.to_variables();
         let value = vars.get("Focal").expect("应有 Focal 变量");
-        assert!(value.contains("200mm"), "焦距应格式化为 200mm，实际是 {}", value);
+        assert!(
+            value.contains("200mm"),
+            "焦距应格式化为 200mm，实际是 {}",
+            value
+        );
     }
 }
 
@@ -291,13 +310,14 @@ fn test_builtin_templates_regression() {
 
     // 所有模板都应可序列化
     for template in &templates {
-        let json = template.to_json().unwrap_or_else(|_| panic!("模板 '{}' 应可序列化",
-            template.name));
+        let json = template
+            .to_json()
+            .unwrap_or_else(|_| panic!("模板 '{}' 应可序列化", template.name));
         assert!(!json.is_empty());
 
         // 应可反序列化
-        let restored = Template::from_json(&json).unwrap_or_else(|_| panic!("模板 '{}' 应可反序列化",
-            template.name));
+        let restored = Template::from_json(&json)
+            .unwrap_or_else(|_| panic!("模板 '{}' 应可反序列化", template.name));
         assert_eq!(template.name, restored.name);
     }
 }

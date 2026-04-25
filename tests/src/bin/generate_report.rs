@@ -6,7 +6,9 @@ use anyhow::{Context, Result};
 use chrono::Local;
 use image::{DynamicImage, ImageFormat, Rgb};
 use litemark_core::exif::ExifData;
-use litemark_core::layout::{RenderMode, self, Anchor, FontWeight, ItemType, Template, TemplateItem};
+use litemark_core::layout::{
+    self, Anchor, FontWeight, ItemType, RenderMode, Template, TemplateItem,
+};
 use litemark_core::renderer::WatermarkRenderer;
 use serde::Serialize;
 use std::collections::HashMap;
@@ -170,7 +172,10 @@ fn main() -> Result<()> {
 
     println!("\n✅ 报告生成完成！");
     println!("位置: {}", report_dir.display());
-    println!("打开: file://{}/index.html", report_dir.canonicalize()?.display());
+    println!(
+        "打开: file://{}/index.html",
+        report_dir.canonicalize()?.display()
+    );
     println!(
         "\n摘要: {} 成功, {} 失败, 耗时 {:.2}s",
         summary.success_count, summary.failure_count, summary.duration_seconds
@@ -278,14 +283,11 @@ fn generate_test_case(
     let variables = exif_data.to_variables();
 
     // 渲染水印
-    let renderer = WatermarkRenderer::new()
-        .map_err(|e| anyhow::anyhow!("创建渲染器失败: {}", e))?;
-    renderer.render_watermark_with_logo_bytes(
-        &mut test_image,
-        template,
-        &variables,
-        None,
-    ).map_err(|e| anyhow::anyhow!("渲染水印失败: {}", e))?;
+    let renderer =
+        WatermarkRenderer::new().map_err(|e| anyhow::anyhow!("创建渲染器失败: {}", e))?;
+    renderer
+        .render_watermark_with_logo_bytes(&mut test_image, template, &variables, None)
+        .map_err(|e| anyhow::anyhow!("渲染水印失败: {}", e))?;
 
     // 保存输出图像
     let output_path = case_dir.join("output.jpg");
@@ -341,27 +343,26 @@ fn generate_html_report(results: &[TestCaseResult], report_dir: &Path) -> Result
     context.insert("success_count", &success_count);
     context.insert("failure_count", &failure_count);
     context.insert("total_count", &results.len());
-    context.insert("generated_at", &Local::now().format("%Y-%m-%d %H:%M:%S").to_string());
+    context.insert(
+        "generated_at",
+        &Local::now().format("%Y-%m-%d %H:%M:%S").to_string(),
+    );
 
     let html = tera.render("report", &context).context("渲染模板失败")?;
 
     fs::write(report_dir.join("index.html"), html)?;
 
     // 复制 CSS
-    let styles_src = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("assets/styles.css");
-    fs::copy(&styles_src, report_dir.join("styles.css"))
-        .context("复制样式文件失败")?;
+    let styles_src = Path::new(env!("CARGO_MANIFEST_DIR")).join("assets/styles.css");
+    fs::copy(&styles_src, report_dir.join("styles.css")).context("复制样式文件失败")?;
 
     Ok(())
 }
 
 /// 加载模板内容
 fn load_template() -> Result<String> {
-    let template_path = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("assets/report_template.html");
-    fs::read_to_string(&template_path)
-        .context("加载报告模板失败")
+    let template_path = Path::new(env!("CARGO_MANIFEST_DIR")).join("assets/report_template.html");
+    fs::read_to_string(&template_path).context("加载报告模板失败")
 }
 
 /// 创建测试图像
@@ -457,5 +458,3 @@ fn create_compact_template() -> Template {
         render_mode: RenderMode::Minimal,
     }
 }
-
-

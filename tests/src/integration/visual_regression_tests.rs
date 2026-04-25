@@ -70,11 +70,7 @@ fn render_template(template: &Template, variables: &HashMap<String, String>) -> 
 /// 比较两张图像的像素差异
 /// 返回 (差异像素数, 总像素数, 最大差异值)
 fn compare_images(expected: &DynamicImage, actual: &DynamicImage) -> (usize, usize, u8) {
-    assert_eq!(
-        expected.dimensions(),
-        actual.dimensions(),
-        "图像尺寸不一致"
-    );
+    assert_eq!(expected.dimensions(), actual.dimensions(), "图像尺寸不一致");
 
     let expected_rgba = expected.to_rgba8();
     let actual_rgba = actual.to_rgba8();
@@ -117,7 +113,11 @@ fn save_reference(template_name: &str, image: &DynamicImage) {
 }
 
 /// 运行单个模板的视觉回归测试
-fn run_visual_regression(template_name: &str, template: &Template, variables: &HashMap<String, String>) {
+fn run_visual_regression(
+    template_name: &str,
+    template: &Template,
+    variables: &HashMap<String, String>,
+) {
     let ref_path = get_reference_path(template_name);
 
     // 生成实际输出

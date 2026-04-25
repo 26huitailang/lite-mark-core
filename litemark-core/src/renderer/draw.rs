@@ -215,20 +215,28 @@ mod tests {
     fn test_render_frame_background_fills_region() {
         let renderer = crate::renderer::WatermarkRenderer::new().unwrap();
         let mut img = RgbaImage::from_pixel(10, 10, Rgba([0, 0, 0, 255]));
-        renderer.render_frame_background(&mut img, 5, 10, 5).unwrap();
+        renderer
+            .render_frame_background(&mut img, 5, 10, 5)
+            .unwrap();
 
         // y=0..4 应保持黑色
         for y in 0..5 {
             for x in 0..10 {
-                assert_eq!(*img.get_pixel(x, y), Rgba([0, 0, 0, 255]),
-                    "frame_y 上方的像素应保持不变");
+                assert_eq!(
+                    *img.get_pixel(x, y),
+                    Rgba([0, 0, 0, 255]),
+                    "frame_y 上方的像素应保持不变"
+                );
             }
         }
         // y=5..9 应变为白色
         for y in 5..10 {
             for x in 0..10 {
-                assert_eq!(*img.get_pixel(x, y), Rgba([255, 255, 255, 255]),
-                    "frame_y 开始的区域应被白色填充");
+                assert_eq!(
+                    *img.get_pixel(x, y),
+                    Rgba([255, 255, 255, 255]),
+                    "frame_y 开始的区域应被白色填充"
+                );
             }
         }
     }
@@ -238,7 +246,9 @@ mod tests {
         let renderer = crate::renderer::WatermarkRenderer::new().unwrap();
         let mut img = RgbaImage::from_pixel(10, 10, Rgba([0, 0, 0, 255]));
         // frame_y=8, height=5 → 只会填充 y=8,9，不会越界
-        renderer.render_frame_background(&mut img, 8, 10, 5).unwrap();
+        renderer
+            .render_frame_background(&mut img, 8, 10, 5)
+            .unwrap();
         assert_eq!(*img.get_pixel(0, 9), Rgba([255, 255, 255, 255]));
         // 确保没有 panic
     }
@@ -251,15 +261,24 @@ mod tests {
 
         // y=5 整行应为线颜色
         for x in 0..10 {
-            assert_eq!(*img.get_pixel(x, 5), Rgba([224, 224, 224, 255]),
-                "目标行应被线颜色填充");
+            assert_eq!(
+                *img.get_pixel(x, 5),
+                Rgba([224, 224, 224, 255]),
+                "目标行应被线颜色填充"
+            );
         }
         // y=4 和 y=6 应保持黑色
         for x in 0..10 {
-            assert_eq!(*img.get_pixel(x, 4), Rgba([0, 0, 0, 255]),
-                "目标行上方的像素应保持不变");
-            assert_eq!(*img.get_pixel(x, 6), Rgba([0, 0, 0, 255]),
-                "目标行下方的像素应保持不变");
+            assert_eq!(
+                *img.get_pixel(x, 4),
+                Rgba([0, 0, 0, 255]),
+                "目标行上方的像素应保持不变"
+            );
+            assert_eq!(
+                *img.get_pixel(x, 6),
+                Rgba([0, 0, 0, 255]),
+                "目标行下方的像素应保持不变"
+            );
         }
     }
 
@@ -271,8 +290,11 @@ mod tests {
 
         // x=5, y=2..6 应为红色
         for y in 2..7 {
-            assert_eq!(*img.get_pixel(5, y), Rgba([255, 0, 0, 255]),
-                "目标列范围内应被填充");
+            assert_eq!(
+                *img.get_pixel(5, y),
+                Rgba([255, 0, 0, 255]),
+                "目标列范围内应被填充"
+            );
         }
         // x=5, y=1 和 y=7 应保持黑色
         assert_eq!(*img.get_pixel(5, 1), Rgba([0, 0, 0, 255]));
@@ -289,10 +311,16 @@ mod tests {
         renderer.render_rounded_rect(&mut img, 5, 5, 10, 10, 2, Rgba([255, 0, 0, 255]));
 
         // 中心区域 (远离圆角) 应被填充
-        assert_eq!(*img.get_pixel(8, 8), Rgba([255, 0, 0, 255]),
-            "矩形中心应被填充");
-        assert_eq!(*img.get_pixel(12, 12), Rgba([255, 0, 0, 255]),
-            "矩形中心应被填充");
+        assert_eq!(
+            *img.get_pixel(8, 8),
+            Rgba([255, 0, 0, 255]),
+            "矩形中心应被填充"
+        );
+        assert_eq!(
+            *img.get_pixel(12, 12),
+            Rgba([255, 0, 0, 255]),
+            "矩形中心应被填充"
+        );
     }
 
     #[test]
@@ -305,8 +333,11 @@ mod tests {
         // 实际上圆角半径=2，所以 (5,5) 是圆角区域，不应填充
         // 绝对坐标 (5,5) 对应矩形内 (0,0)，圆角中心在 (5+2, 5+2) = (7,7)
         // (5,5) 距离中心 (7,7) 的距离 = sqrt(4+4) = 2.8 > 半径 2，所以不应填充
-        assert_eq!(*img.get_pixel(5, 5), Rgba([0, 0, 0, 255]),
-            "圆角外的像素应保持背景色");
+        assert_eq!(
+            *img.get_pixel(5, 5),
+            Rgba([0, 0, 0, 255]),
+            "圆角外的像素应保持背景色"
+        );
     }
 
     #[test]
@@ -335,28 +366,40 @@ mod tests {
     fn test_render_gradient_background_alpha_gradient() {
         let renderer = crate::renderer::WatermarkRenderer::new().unwrap();
         let mut img = RgbaImage::from_pixel(10, 10, Rgba([0, 0, 0, 255]));
-        renderer.render_gradient_background(&mut img, 0, 10, 10).unwrap();
+        renderer
+            .render_gradient_background(&mut img, 0, 10, 10)
+            .unwrap();
 
         // blend_pixel 的 alpha = max(bg.a, fg.a)，混合后像素 alpha 永远是 255
         // 应检查 RGB 亮度是否单调递增
         // progress=0: overlay alpha=64, blend -> r ≈ 255*(64/255) = 64
         // progress=1: overlay alpha=255, blend -> r = 255
         let top_pixel = img.get_pixel(5, 0);
-        assert!(top_pixel[0] >= 60 && top_pixel[0] <= 68,
-            "首行 RGB 应约为 64（25% 混合），实际 r={}", top_pixel[0]);
+        assert!(
+            top_pixel[0] >= 60 && top_pixel[0] <= 68,
+            "首行 RGB 应约为 64（25% 混合），实际 r={}",
+            top_pixel[0]
+        );
 
         let bottom_pixel = img.get_pixel(5, 9);
         // height=10, y=9, progress=0.9, alpha=64+191*0.9=235.9≈235
-        assert!(bottom_pixel[0] >= 230 && bottom_pixel[0] <= 240,
-            "末行 RGB 应约为 235（progress=0.9 时 alpha≈235），实际 r={}", bottom_pixel[0]);
+        assert!(
+            bottom_pixel[0] >= 230 && bottom_pixel[0] <= 240,
+            "末行 RGB 应约为 235（progress=0.9 时 alpha≈235），实际 r={}",
+            bottom_pixel[0]
+        );
 
         // RGB 亮度应单调递增
         let mut last_brightness = 0;
         for y in 0..10 {
             let brightness = img.get_pixel(5, y)[0];
-            assert!(brightness >= last_brightness,
+            assert!(
+                brightness >= last_brightness,
                 "RGB 亮度应单调递增: y={} 时 brightness={} < 上一行 brightness={}",
-                y, brightness, last_brightness);
+                y,
+                brightness,
+                last_brightness
+            );
             last_brightness = brightness;
         }
     }

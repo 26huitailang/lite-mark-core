@@ -4,7 +4,7 @@
 
 use image::{DynamicImage, ImageFormat, Rgb, RgbImage};
 use litemark_core::exif::ExifData;
-use litemark_core::layout::{RenderMode, Anchor, FontWeight, ItemType, Template, TemplateItem};
+use litemark_core::layout::{Anchor, FontWeight, ItemType, RenderMode, Template, TemplateItem};
 use litemark_core::renderer::WatermarkRenderer;
 
 /// 测试标准处理流程
@@ -30,12 +30,8 @@ fn test_standard_pipeline() {
 
     // 4. 渲染水印
     let renderer = WatermarkRenderer::new().expect("创建渲染器失败");
-    let render_result = renderer.render_watermark_with_logo_bytes(
-        &mut image,
-        &template,
-        &variables,
-        None,
-    );
+    let render_result =
+        renderer.render_watermark_with_logo_bytes(&mut image, &template, &variables, None);
     assert!(render_result.is_ok(), "渲染应成功");
 
     // 5. 验证尺寸契约
@@ -48,7 +44,10 @@ fn test_standard_pipeline() {
         image.height(),
         original_height + expected_frame,
         "边框高度必须符合公式：short_edge({}) * ratio({}) = {}，max(80) = {}",
-        short_edge, ratio, calculated, expected_frame
+        short_edge,
+        ratio,
+        calculated,
+        expected_frame
     );
     assert_eq!(image.width(), 800, "宽度必须保持不变");
 
@@ -67,12 +66,7 @@ fn test_standard_pipeline() {
 /// 测试不同尺寸图像的完整处理流程
 #[test]
 fn test_pipeline_various_sizes() {
-    let sizes = vec![
-        (400, 300),
-        (800, 600),
-        (1920, 1080),
-        (1024, 1024),
-    ];
+    let sizes = vec![(400, 300), (800, 600), (1920, 1080), (1024, 1024)];
 
     for (width, height) in sizes {
         let mut image = create_gradient_image(width, height);
@@ -85,19 +79,10 @@ fn test_pipeline_various_sizes() {
         let template = create_simple_template();
         let renderer = WatermarkRenderer::new().expect("创建渲染器失败");
 
-        let result = renderer.render_watermark_with_logo_bytes(
-            &mut image,
-            &template,
-            &variables,
-            None,
-        );
+        let result =
+            renderer.render_watermark_with_logo_bytes(&mut image, &template, &variables, None);
 
-        assert!(
-            result.is_ok(),
-            "尺寸 {}x{} 的处理应成功",
-            width,
-            height
-        );
+        assert!(result.is_ok(), "尺寸 {}x{} 的处理应成功", width, height);
 
         // 验证边框高度契约
         let short_edge = width.min(height) as f32;
@@ -108,7 +93,9 @@ fn test_pipeline_various_sizes() {
             image.height(),
             height + expected_frame,
             "尺寸 {}x{} 的边框高度应为 {}",
-            width, height, expected_frame
+            width,
+            height,
+            expected_frame
         );
         assert_eq!(image.width(), width, "宽度必须保持不变");
     }
@@ -126,12 +113,7 @@ fn test_pipeline_missing_exif() {
     let template = create_simple_template();
     let renderer = WatermarkRenderer::new().expect("创建渲染器失败");
 
-    let result = renderer.render_watermark_with_logo_bytes(
-        &mut image,
-        &template,
-        &variables,
-        None,
-    );
+    let result = renderer.render_watermark_with_logo_bytes(&mut image, &template, &variables, None);
 
     assert!(result.is_ok(), "无 EXIF 数据也应能处理");
 
@@ -155,12 +137,7 @@ fn test_pipeline_partial_exif() {
     let template = create_classic_template();
     let renderer = WatermarkRenderer::new().expect("创建渲染器失败");
 
-    let result = renderer.render_watermark_with_logo_bytes(
-        &mut image,
-        &template,
-        &variables,
-        None,
-    );
+    let result = renderer.render_watermark_with_logo_bytes(&mut image, &template, &variables, None);
 
     assert!(result.is_ok(), "部分 EXIF 数据也应能处理");
 }
@@ -185,12 +162,8 @@ fn test_pipeline_different_templates() {
         let variables = exif_data.to_variables();
         let renderer = WatermarkRenderer::new().expect("创建渲染器失败");
 
-        let result = renderer.render_watermark_with_logo_bytes(
-            &mut image,
-            &template,
-            &variables,
-            None,
-        );
+        let result =
+            renderer.render_watermark_with_logo_bytes(&mut image, &template, &variables, None);
 
         assert!(result.is_ok(), "模板 '{}' 的处理应成功", name);
     }
@@ -210,12 +183,9 @@ fn test_pipeline_image_size_change() {
     let template = create_classic_template();
     let renderer = WatermarkRenderer::new().expect("创建渲染器失败");
 
-    renderer.render_watermark_with_logo_bytes(
-        &mut image,
-        &template,
-        &variables,
-        None,
-    ).expect("渲染失败");
+    renderer
+        .render_watermark_with_logo_bytes(&mut image, &template, &variables, None)
+        .expect("渲染失败");
 
     // 宽度应保持不变
     assert_eq!(image.width(), original_width, "宽度应保持不变");
@@ -229,7 +199,10 @@ fn test_pipeline_image_size_change() {
         image.height(),
         original_height + expected_frame,
         "高度应精确增加 {}px（short_edge={} * ratio={} = {}, max(80)）",
-        expected_frame, short_edge, ratio, calculated
+        expected_frame,
+        short_edge,
+        ratio,
+        calculated
     );
 }
 
@@ -247,12 +220,7 @@ fn test_pipeline_unicode_text() {
     let template = create_classic_template();
     let renderer = WatermarkRenderer::new().expect("创建渲染器失败");
 
-    let result = renderer.render_watermark_with_logo_bytes(
-        &mut image,
-        &template,
-        &variables,
-        None,
-    );
+    let result = renderer.render_watermark_with_logo_bytes(&mut image, &template, &variables, None);
 
     assert!(result.is_ok(), "Unicode 文本处理应成功");
 
@@ -274,12 +242,7 @@ fn test_pipeline_special_characters() {
     let template = create_simple_template();
     let renderer = WatermarkRenderer::new().expect("创建渲染器失败");
 
-    let result = renderer.render_watermark_with_logo_bytes(
-        &mut image,
-        &template,
-        &variables,
-        None,
-    );
+    let result = renderer.render_watermark_with_logo_bytes(&mut image, &template, &variables, None);
 
     assert!(result.is_ok(), "特殊字符处理应成功");
 }
@@ -290,18 +253,15 @@ fn test_pipeline_long_text() {
     let mut image = create_gradient_image(800, 600);
 
     let mut exif_data = ExifData::new();
-    exif_data.author = Some("Very Long Author Name That Might Cause Layout Issues If Not Handled Properly".to_string());
+    exif_data.author = Some(
+        "Very Long Author Name That Might Cause Layout Issues If Not Handled Properly".to_string(),
+    );
 
     let variables = exif_data.to_variables();
     let template = create_simple_template();
     let renderer = WatermarkRenderer::new().expect("创建渲染器失败");
 
-    let result = renderer.render_watermark_with_logo_bytes(
-        &mut image,
-        &template,
-        &variables,
-        None,
-    );
+    let result = renderer.render_watermark_with_logo_bytes(&mut image, &template, &variables, None);
 
     assert!(result.is_ok(), "长文本处理应成功");
 }

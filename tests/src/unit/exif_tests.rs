@@ -8,7 +8,7 @@ use litemark_core::exif::ExifData;
 #[test]
 fn test_exif_data_new_empty() {
     let data = ExifData::new();
-    
+
     assert!(data.iso.is_none());
     assert!(data.aperture.is_none());
     assert!(data.shutter_speed.is_none());
@@ -24,7 +24,7 @@ fn test_exif_data_new_empty() {
 fn test_exif_data_default() {
     let new_data = ExifData::new();
     let default_data = ExifData::default();
-    
+
     assert_eq!(new_data.iso, default_data.iso);
     assert_eq!(new_data.aperture, default_data.aperture);
     assert_eq!(new_data.shutter_speed, default_data.shutter_speed);
@@ -51,7 +51,10 @@ fn test_exif_data_to_variables_full() {
     assert_eq!(vars.get("Focal"), Some(&"85mm".to_string()));
     assert_eq!(vars.get("Camera"), Some(&"Sony A7M4".to_string()));
     assert_eq!(vars.get("Lens"), Some(&"FE 85mm F1.8".to_string()));
-    assert_eq!(vars.get("DateTime"), Some(&"2024:01:15 14:30:00".to_string()));
+    assert_eq!(
+        vars.get("DateTime"),
+        Some(&"2024:01:15 14:30:00".to_string())
+    );
     assert_eq!(vars.get("Author"), Some(&"Test Photographer".to_string()));
 }
 
@@ -81,7 +84,7 @@ fn test_aperture_formatting() {
         (5.6, "f/5.6"),
         (11.0, "f/11.0"),
         (16.0, "f/16.0"),
-        (0.95, "f/0.9"),  // 边界：极小光圈
+        (0.95, "f/0.9"),    // 边界：极小光圈
         (999.0, "f/999.0"), // 边界：极大光圈
     ];
 
@@ -89,8 +92,13 @@ fn test_aperture_formatting() {
         let mut data = ExifData::new();
         data.aperture = Some(aperture);
         let vars = data.to_variables();
-        assert_eq!(vars.get("Aperture"), Some(&expected.to_string()), 
-            "光圈值 {} 应格式化为 {}", aperture, expected);
+        assert_eq!(
+            vars.get("Aperture"),
+            Some(&expected.to_string()),
+            "光圈值 {} 应格式化为 {}",
+            aperture,
+            expected
+        );
     }
 }
 
@@ -102,8 +110,8 @@ fn test_focal_length_formatting() {
         (50.0, "50mm"),
         (85.0, "85mm"),
         (200.0, "200mm"),
-        (70.0, "70mm"),  // 变焦常见值
-        (1.0, "1mm"),    // 边界：极短焦距
+        (70.0, "70mm"),   // 变焦常见值
+        (1.0, "1mm"),     // 边界：极短焦距
         (800.0, "800mm"), // 边界：超长焦
     ];
 
@@ -111,8 +119,13 @@ fn test_focal_length_formatting() {
         let mut data = ExifData::new();
         data.focal_length = Some(focal);
         let vars = data.to_variables();
-        assert_eq!(vars.get("Focal"), Some(&expected.to_string()),
-            "焦距 {} 应格式化为 {}", focal, expected);
+        assert_eq!(
+            vars.get("Focal"),
+            Some(&expected.to_string()),
+            "焦距 {} 应格式化为 {}",
+            focal,
+            expected
+        );
     }
 }
 
@@ -137,7 +150,7 @@ fn test_get_missing_fields_all_present() {
 fn test_get_missing_fields_all_missing() {
     let data = ExifData::new();
     let missing = data.get_missing_fields();
-    
+
     assert_eq!(missing.len(), 8);
     assert!(missing.contains(&"ISO".to_string()));
     assert!(missing.contains(&"Aperture".to_string()));
@@ -156,7 +169,7 @@ fn test_get_missing_fields_partial() {
     data.author = Some("Test".to_string());
 
     let missing = data.get_missing_fields();
-    
+
     assert_eq!(missing.len(), 6);
     assert!(!missing.contains(&"ISO".to_string()));
     assert!(!missing.contains(&"Author".to_string()));
@@ -168,7 +181,7 @@ fn test_get_missing_fields_partial() {
 fn test_extract_from_empty_bytes() {
     let empty_data: &[u8] = &[];
     let result = litemark_core::exif::extract_from_bytes(empty_data);
-    
+
     assert!(result.is_ok(), "空数据应返回 Ok");
     let exif_data = result.unwrap();
     assert!(exif_data.iso.is_none());
@@ -180,7 +193,7 @@ fn test_extract_from_invalid_data() {
     // 随机数据，不是有效的图片
     let invalid_data: Vec<u8> = vec![0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x00, 0x00];
     let result = litemark_core::exif::extract_from_bytes(&invalid_data);
-    
+
     // 应该返回 Ok 而不是 Err（降级处理）
     assert!(result.is_ok());
 }
@@ -193,19 +206,22 @@ fn test_exif_variables_special_chars() {
     data.camera_model = Some("Canon EOS R5 <special>".to_string());
 
     let vars = data.to_variables();
-    
+
     assert_eq!(vars.get("Author"), Some(&"摄影师📷 Test".to_string()));
-    assert_eq!(vars.get("Camera"), Some(&"Canon EOS R5 <special>".to_string()));
+    assert_eq!(
+        vars.get("Camera"),
+        Some(&"Canon EOS R5 <special>".to_string())
+    );
 }
 
 /// 测试 ISO 值边界
 #[test]
 fn test_iso_boundaries() {
     let test_values = vec![
-        (0, "0"),      // 理论最小值
-        (50, "50"),    // 低 ISO
-        (100, "100"),  // 标准 ISO
-        (6400, "6400"), // 高 ISO
+        (0, "0"),           // 理论最小值
+        (50, "50"),         // 低 ISO
+        (100, "100"),       // 标准 ISO
+        (6400, "6400"),     // 高 ISO
         (102400, "102400"), // 极高 ISO
         (999999, "999999"), // 超大值
     ];
@@ -214,8 +230,13 @@ fn test_iso_boundaries() {
         let mut data = ExifData::new();
         data.iso = Some(iso);
         let vars = data.to_variables();
-        assert_eq!(vars.get("ISO"), Some(&expected.to_string()),
-            "ISO {} 应格式化为 {}", iso, expected);
+        assert_eq!(
+            vars.get("ISO"),
+            Some(&expected.to_string()),
+            "ISO {} 应格式化为 {}",
+            iso,
+            expected
+        );
     }
 }
 
@@ -227,7 +248,7 @@ fn test_exif_data_clone() {
     original.camera_model = Some("Nikon Z6".to_string());
 
     let cloned = original.clone();
-    
+
     assert_eq!(original.iso, cloned.iso);
     assert_eq!(original.camera_model, cloned.camera_model);
 }
@@ -237,7 +258,7 @@ fn test_exif_data_clone() {
 fn test_exif_data_debug() {
     let mut data = ExifData::new();
     data.iso = Some(100);
-    
+
     let debug_str = format!("{:?}", data);
     assert!(debug_str.contains("ExifData"));
     assert!(debug_str.contains("iso: Some(100)"));

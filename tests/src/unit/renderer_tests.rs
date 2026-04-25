@@ -3,7 +3,7 @@
 //! 测试水印渲染引擎的功能
 
 use image::{DynamicImage, ImageFormat, Rgb};
-use litemark_core::layout::{RenderMode, Anchor, FontWeight, ItemType, Template, TemplateItem};
+use litemark_core::layout::{Anchor, FontWeight, ItemType, RenderMode, Template, TemplateItem};
 use litemark_core::renderer::WatermarkRenderer;
 use std::collections::HashMap;
 
@@ -65,12 +65,9 @@ fn test_render_watermark_full_pipeline() {
     );
 
     assert!(result.is_ok(), "渲染应成功");
-    
+
     // 验证图像高度增加了（添加了水印边框）
-    assert!(
-        test_image.height() > original_height,
-        "水印应增加图像高度"
-    );
+    assert!(test_image.height() > original_height, "水印应增加图像高度");
 }
 
 /// 测试渲染到极小图像
@@ -85,12 +82,8 @@ fn test_render_watermark_tiny_image() {
     let template = create_test_template();
     let renderer = WatermarkRenderer::new().expect("创建渲染器失败");
 
-    let result = renderer.render_watermark_with_logo_bytes(
-        &mut test_image,
-        &template,
-        &variables,
-        None,
-    );
+    let result =
+        renderer.render_watermark_with_logo_bytes(&mut test_image, &template, &variables, None);
 
     assert!(result.is_ok());
     assert!(test_image.height() > original_height);
@@ -108,12 +101,8 @@ fn test_render_watermark_square_image() {
     let template = create_test_template();
     let renderer = WatermarkRenderer::new().expect("创建渲染器失败");
 
-    let result = renderer.render_watermark_with_logo_bytes(
-        &mut test_image,
-        &template,
-        &variables,
-        None,
-    );
+    let result =
+        renderer.render_watermark_with_logo_bytes(&mut test_image, &template, &variables, None);
 
     assert!(result.is_ok());
     assert!(test_image.height() > original_height);
@@ -129,12 +118,8 @@ fn test_render_watermark_empty_variables() {
     let renderer = WatermarkRenderer::new().expect("创建渲染器失败");
 
     // 空变量应该也能渲染（只是不显示任何内容或保留占位符）
-    let result = renderer.render_watermark_with_logo_bytes(
-        &mut test_image,
-        &template,
-        &variables,
-        None,
-    );
+    let result =
+        renderer.render_watermark_with_logo_bytes(&mut test_image, &template, &variables, None);
 
     assert!(result.is_ok());
 }
@@ -150,12 +135,9 @@ fn test_render_output_encodable() {
     let template = create_test_template();
     let renderer = WatermarkRenderer::new().expect("创建渲染器失败");
 
-    renderer.render_watermark_with_logo_bytes(
-        &mut test_image,
-        &template,
-        &variables,
-        None,
-    ).expect("渲染失败");
+    renderer
+        .render_watermark_with_logo_bytes(&mut test_image, &template, &variables, None)
+        .expect("渲染失败");
 
     // 验证能编码为 JPEG
     let jpeg_result = litemark_core::image_io::encode_image(&test_image, ImageFormat::Jpeg);
@@ -179,12 +161,8 @@ fn test_renderer_reusable() {
 
         let template = create_test_template();
 
-        let result = renderer.render_watermark_with_logo_bytes(
-            &mut test_image,
-            &template,
-            &variables,
-            None,
-        );
+        let result =
+            renderer.render_watermark_with_logo_bytes(&mut test_image, &template, &variables, None);
 
         assert!(result.is_ok(), "第 {} 次渲染应成功", i);
     }
@@ -243,12 +221,8 @@ fn test_render_unicode_text() {
     let template = create_test_template();
     let renderer = WatermarkRenderer::new().expect("创建渲染器失败");
 
-    let result = renderer.render_watermark_with_logo_bytes(
-        &mut test_image,
-        &template,
-        &variables,
-        None,
-    );
+    let result =
+        renderer.render_watermark_with_logo_bytes(&mut test_image, &template, &variables, None);
 
     assert!(result.is_ok());
 }

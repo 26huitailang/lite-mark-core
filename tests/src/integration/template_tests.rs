@@ -3,7 +3,7 @@
 //! 测试所有模板变量组合和内置模板
 
 use litemark_core::exif::ExifData;
-use litemark_core::layout::{RenderMode, self, Template};
+use litemark_core::layout::{self, RenderMode, Template};
 
 /// 测试内置模板加载
 #[test]
@@ -11,10 +11,10 @@ fn test_builtin_templates_loading() {
     let templates = layout::create_builtin_templates();
 
     assert!(!templates.is_empty(), "应至少有一个内置模板");
-    
+
     // 验证常见模板存在
     let template_names: Vec<&str> = templates.iter().map(|t| t.name.as_str()).collect();
-    
+
     assert!(
         template_names.contains(&"Classic") || template_names.contains(&"classic"),
         "应包含 Classic 模板"
@@ -46,40 +46,58 @@ fn test_all_exif_combinations() {
     let combinations: Vec<(&str, Box<dyn Fn() -> ExifData>)> = vec![
         ("empty", Box::new(ExifData::new)),
         ("full", Box::new(create_full_exif)),
-        ("only_iso", Box::new(|| {
-            let mut d = ExifData::new();
-            d.iso = Some(100);
-            d
-        })),
-        ("only_camera", Box::new(|| {
-            let mut d = ExifData::new();
-            d.camera_model = Some("Camera".to_string());
-            d
-        })),
-        ("only_author", Box::new(|| {
-            let mut d = ExifData::new();
-            d.author = Some("Author".to_string());
-            d
-        })),
-        ("photo_params", Box::new(|| {
-            let mut d = ExifData::new();
-            d.iso = Some(400);
-            d.aperture = Some(2.8);
-            d.shutter_speed = Some("1/125".to_string());
-            d.focal_length = Some(50.0);
-            d
-        })),
-        ("equipment_info", Box::new(|| {
-            let mut d = ExifData::new();
-            d.camera_model = Some("Sony A7M4".to_string());
-            d.lens_model = Some("FE 24-70mm".to_string());
-            d
-        })),
-        ("temporal_info", Box::new(|| {
-            let mut d = ExifData::new();
-            d.date_time = Some("2024:01:15 14:30:00".to_string());
-            d
-        })),
+        (
+            "only_iso",
+            Box::new(|| {
+                let mut d = ExifData::new();
+                d.iso = Some(100);
+                d
+            }),
+        ),
+        (
+            "only_camera",
+            Box::new(|| {
+                let mut d = ExifData::new();
+                d.camera_model = Some("Camera".to_string());
+                d
+            }),
+        ),
+        (
+            "only_author",
+            Box::new(|| {
+                let mut d = ExifData::new();
+                d.author = Some("Author".to_string());
+                d
+            }),
+        ),
+        (
+            "photo_params",
+            Box::new(|| {
+                let mut d = ExifData::new();
+                d.iso = Some(400);
+                d.aperture = Some(2.8);
+                d.shutter_speed = Some("1/125".to_string());
+                d.focal_length = Some(50.0);
+                d
+            }),
+        ),
+        (
+            "equipment_info",
+            Box::new(|| {
+                let mut d = ExifData::new();
+                d.camera_model = Some("Sony A7M4".to_string());
+                d.lens_model = Some("FE 24-70mm".to_string());
+                d
+            }),
+        ),
+        (
+            "temporal_info",
+            Box::new(|| {
+                let mut d = ExifData::new();
+                d.date_time = Some("2024:01:15 14:30:00".to_string());
+                d
+            }),
+        ),
     ];
 
     for (_name, factory) in combinations {
@@ -87,10 +105,7 @@ fn test_all_exif_combinations() {
         let variables = exif_data.to_variables();
 
         // 验证变量生成不 panic
-        assert!(
-            variables.len() <= 8,
-            "变量数量不应超过 EXIF 字段数"
-        );
+        assert!(variables.len() <= 8, "变量数量不应超过 EXIF 字段数");
 
         // 验证模板替换不 panic
         let template = create_test_template_with_all_variables();
@@ -106,16 +121,11 @@ fn test_variable_substitution_completeness() {
 
     // 验证所有可能的变量都存在
     let expected_keys = vec![
-        "ISO", "Aperture", "Shutter", "Focal",
-        "Camera", "Lens", "DateTime", "Author"
+        "ISO", "Aperture", "Shutter", "Focal", "Camera", "Lens", "DateTime", "Author",
     ];
 
     for key in &expected_keys {
-        assert!(
-            variables.contains_key(*key),
-            "变量 {} 应存在",
-            key
-        );
+        assert!(variables.contains_key(*key), "变量 {} 应存在", key);
     }
 }
 
@@ -145,11 +155,9 @@ fn test_template_substitution_results() {
         let template = create_template_with_value(template_str);
         let substituted = template.substitute_variables(&variables);
         assert_eq!(
-            substituted.items[0].value,
-            expected,
+            substituted.items[0].value, expected,
             "模板 '{}' 应替换为 '{}'",
-            template_str,
-            expected
+            template_str, expected
         );
     }
 }
@@ -209,11 +217,11 @@ fn test_template_anchor_positions() {
 #[test]
 fn test_template_ratio_boundaries() {
     let ratios = vec![
-        0.01f32,  // 极小
-        0.05,     // 小
-        0.10,     // 默认值附近
-        0.20,     // 中等
-        0.50,     // 大
+        0.01f32, // 极小
+        0.05,    // 小
+        0.10,    // 默认值附近
+        0.20,    // 中等
+        0.50,    // 大
     ];
 
     for ratio in ratios {
@@ -253,7 +261,7 @@ fn create_full_exif() -> ExifData {
 
 /// 辅助函数：创建包含所有变量的测试模板
 fn create_test_template_with_all_variables() -> Template {
-    use litemark_core::layout::{RenderMode, Anchor, FontWeight, ItemType, TemplateItem};
+    use litemark_core::layout::{Anchor, FontWeight, ItemType, RenderMode, TemplateItem};
 
     Template {
         name: "TestAllVars".to_string(),
@@ -305,7 +313,7 @@ fn create_test_template_with_all_variables() -> Template {
 
 /// 辅助函数：创建包含指定值的模板
 fn create_template_with_value(value: &str) -> Template {
-    use litemark_core::layout::{RenderMode, Anchor, FontWeight, ItemType, TemplateItem};
+    use litemark_core::layout::{Anchor, FontWeight, ItemType, RenderMode, TemplateItem};
 
     Template {
         name: "Test".to_string(),

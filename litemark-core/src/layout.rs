@@ -1,7 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-
 // Default values for template scaling ratios
 fn default_frame_height_ratio() -> f32 {
     0.10
@@ -165,14 +164,20 @@ pub fn create_builtin_templates() -> Vec<Template> {
     let template_sources = [
         ("classic", include_str!("../../templates/classic.json")),
         ("compact", include_str!("../../templates/compact.json")),
-        ("professional", include_str!("../../templates/professional.json")),
+        (
+            "professional",
+            include_str!("../../templates/professional.json"),
+        ),
         ("overlay", include_str!("../../templates/overlay.json")),
     ];
 
     for (name, content) in template_sources {
         match Template::from_json(content) {
             Ok(template) => templates.push(template),
-            Err(e) => eprintln!("Warning: failed to parse built-in template '{}': {}", name, e),
+            Err(e) => eprintln!(
+                "Warning: failed to parse built-in template '{}': {}",
+                name, e
+            ),
         }
     }
 

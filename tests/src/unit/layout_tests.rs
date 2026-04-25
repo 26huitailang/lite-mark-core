@@ -2,7 +2,7 @@
 //!
 //! 测试模板解析、变量替换、序列化等功能
 
-use litemark_core::layout::{RenderMode, Anchor, FontWeight, ItemType, Template, TemplateItem};
+use litemark_core::layout::{Anchor, FontWeight, ItemType, RenderMode, Template, TemplateItem};
 use std::collections::HashMap;
 
 /// 测试模板 JSON 序列化和反序列化
@@ -55,12 +55,12 @@ fn test_template_json_roundtrip() {
 #[test]
 fn test_substitute_variables_simple() {
     let template = create_test_template("Hello {Name}");
-    
+
     let mut vars = HashMap::new();
     vars.insert("Name".to_string(), "World".to_string());
 
     let substituted = template.substitute_variables(&vars);
-    
+
     assert_eq!(substituted.items[0].value, "Hello World");
 }
 
@@ -68,28 +68,31 @@ fn test_substitute_variables_simple() {
 #[test]
 fn test_substitute_variables_multiple() {
     let template = create_test_template("{Camera} • {Lens} • ISO {ISO}");
-    
+
     let mut vars = HashMap::new();
     vars.insert("Camera".to_string(), "Sony A7M4".to_string());
     vars.insert("Lens".to_string(), "FE 24-70mm".to_string());
     vars.insert("ISO".to_string(), "400".to_string());
 
     let substituted = template.substitute_variables(&vars);
-    
-    assert_eq!(substituted.items[0].value, "Sony A7M4 • FE 24-70mm • ISO 400");
+
+    assert_eq!(
+        substituted.items[0].value,
+        "Sony A7M4 • FE 24-70mm • ISO 400"
+    );
 }
 
 /// 测试变量替换 - 缺失变量保持原样
 #[test]
 fn test_substitute_variables_missing() {
     let template = create_test_template("{Author} • {Missing}");
-    
+
     let mut vars = HashMap::new();
     vars.insert("Author".to_string(), "Test".to_string());
     // Missing 不提供
 
     let substituted = template.substitute_variables(&vars);
-    
+
     assert_eq!(substituted.items[0].value, "Test • {Missing}");
 }
 
@@ -97,12 +100,12 @@ fn test_substitute_variables_missing() {
 #[test]
 fn test_substitute_variables_empty() {
     let template = create_test_template("{Author}");
-    
+
     let mut vars = HashMap::new();
     vars.insert("Author".to_string(), "".to_string());
 
     let substituted = template.substitute_variables(&vars);
-    
+
     assert_eq!(substituted.items[0].value, "");
 }
 
@@ -110,12 +113,12 @@ fn test_substitute_variables_empty() {
 #[test]
 fn test_substitute_variables_special_chars() {
     let template = create_test_template("{Author}");
-    
+
     let mut vars = HashMap::new();
     vars.insert("Author".to_string(), "Test <>&\"'".to_string());
 
     let substituted = template.substitute_variables(&vars);
-    
+
     assert_eq!(substituted.items[0].value, "Test <>&\"'");
 }
 
@@ -123,13 +126,13 @@ fn test_substitute_variables_special_chars() {
 #[test]
 fn test_substitute_variables_unicode() {
     let template = create_test_template("{Author} • {Camera}");
-    
+
     let mut vars = HashMap::new();
     vars.insert("Author".to_string(), "摄影师📷".to_string());
     vars.insert("Camera".to_string(), "相机".to_string());
 
     let substituted = template.substitute_variables(&vars);
-    
+
     assert_eq!(substituted.items[0].value, "摄影师📷 • 相机");
 }
 
@@ -173,7 +176,7 @@ fn test_substitute_variables_multiple_items() {
     vars.insert("ISO".to_string(), "400".to_string());
 
     let substituted = template.substitute_variables(&vars);
-    
+
     assert_eq!(substituted.items[0].value, "John");
     assert_eq!(substituted.items[1].value, "f/2.8 | ISO 400");
 }
@@ -183,7 +186,7 @@ fn test_substitute_variables_multiple_items() {
 fn test_template_invalid_json() {
     let invalid_json = "{ invalid json }";
     let result = Template::from_json(invalid_json);
-    
+
     assert!(result.is_err(), "无效 JSON 应返回错误");
 }
 
@@ -194,7 +197,7 @@ fn test_template_missing_fields() {
         "name": "Incomplete",
         "anchor": "bottom-left"
     }"#;
-    
+
     let result = Template::from_json(incomplete_json);
     // serde 会处理缺失字段，使用默认值
     assert!(result.is_ok() || result.is_err());
@@ -226,7 +229,7 @@ fn test_anchor_variants() {
             }}"#,
             json_name
         );
-        
+
         let result = Template::from_json(&json);
         assert!(result.is_ok(), "Anchor '{}' 应被正确解析", json_name);
     }
@@ -235,10 +238,7 @@ fn test_anchor_variants() {
 /// 测试所有 ItemType 变体
 #[test]
 fn test_item_type_variants() {
-    let items = vec![
-        ("text", ItemType::Text),
-        ("logo", ItemType::Logo),
-    ];
+    let items = vec![("text", ItemType::Text), ("logo", ItemType::Logo)];
 
     for (json_name, _) in items {
         let json = format!(
@@ -261,7 +261,7 @@ fn test_item_type_variants() {
             }}"#,
             json_name
         );
-        
+
         let result = Template::from_json(&json);
         assert!(result.is_ok(), "ItemType '{}' 应被正确解析", json_name);
     }
@@ -294,7 +294,7 @@ fn test_font_weight_variants() {
             }}"#,
             weight
         );
-        
+
         let result = Template::from_json(&json);
         assert!(result.is_ok(), "FontWeight '{}' 应被正确解析", weight);
     }
@@ -305,7 +305,7 @@ fn test_font_weight_variants() {
 fn test_template_clone() {
     let template = create_test_template("{Author}");
     let cloned = template.clone();
-    
+
     assert_eq!(template.name, cloned.name);
     assert_eq!(template.items.len(), cloned.items.len());
 }

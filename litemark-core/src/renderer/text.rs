@@ -32,7 +32,11 @@ impl super::WatermarkRenderer {
         let leaked: &'static [u8] = Box::leak(data.to_vec().into_boxed_slice());
         FontRef::try_from_slice(leaked).map_err(|e| {
             FontError::ParseFailed {
-                reason: format!("font data parse error: {} (size: {} bytes)", e, leaked.len()),
+                reason: format!(
+                    "font data parse error: {} (size: {} bytes)",
+                    e,
+                    leaked.len()
+                ),
             }
             .into()
         })
@@ -53,7 +57,11 @@ impl super::WatermarkRenderer {
 
         FontRef::try_from_slice(font_data).map_err(|e| {
             FontError::ParseFailed {
-                reason: format!("default font parse error: {} (size: {} bytes)", e, font_data.len()),
+                reason: format!(
+                    "default font parse error: {} (size: {} bytes)",
+                    e,
+                    font_data.len()
+                ),
             }
             .into()
         })
@@ -68,7 +76,12 @@ impl super::WatermarkRenderer {
     }
 
     /// 计算文字像素宽度
-    pub(super) fn text_width(&self, text: &str, font_size: u32, weight: Option<&FontWeight>) -> f32 {
+    pub(super) fn text_width(
+        &self,
+        text: &str,
+        font_size: u32,
+        weight: Option<&FontWeight>,
+    ) -> f32 {
         let font = self.select_font(weight);
         let scale = PxScale::from(font_size as f32);
         let scaled_font = font.as_scaled(scale);
@@ -142,12 +155,20 @@ mod tests {
 
     #[test]
     fn test_blend_gamma_corrected_alpha_zero_returns_bg() {
-        assert_eq!(blend_gamma_corrected(255, 100, 0.0), 100, "alpha=0 时必须返回背景色");
+        assert_eq!(
+            blend_gamma_corrected(255, 100, 0.0),
+            100,
+            "alpha=0 时必须返回背景色"
+        );
     }
 
     #[test]
     fn test_blend_gamma_corrected_alpha_one_returns_fg() {
-        assert_eq!(blend_gamma_corrected(255, 100, 1.0), 255, "alpha=1 时必须返回前景色");
+        assert_eq!(
+            blend_gamma_corrected(255, 100, 1.0),
+            255,
+            "alpha=1 时必须返回前景色"
+        );
     }
 
     #[test]
@@ -156,7 +177,11 @@ mod tests {
         // fg_lin = bg_lin = (128/255)^2 ≈ 0.25196
         // result_lin = 0.25196 * 0.5 + 0.25196 * 0.5 = 0.25196
         // result = sqrt(0.25196) * 255 = 0.50196 * 255 = 128
-        assert_eq!(blend_gamma_corrected(128, 128, 0.5), 128, "同色混合应保持不变");
+        assert_eq!(
+            blend_gamma_corrected(128, 128, 0.5),
+            128,
+            "同色混合应保持不变"
+        );
     }
 
     #[test]

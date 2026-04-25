@@ -1,5 +1,5 @@
-use litemark_core::{image_io, exif, layout, renderer::WatermarkRenderer};
 use indicatif::{ProgressBar, ProgressStyle};
+use litemark_core::{exif, image_io, layout, renderer::WatermarkRenderer};
 use rayon::prelude::*;
 use std::time::Instant;
 
@@ -247,8 +247,8 @@ fn process_single_image_in_batch(
     };
 
     // Encode image to bytes
-    let output_bytes = image_io::encode_image(&image, image::ImageFormat::Jpeg)
-        .map_err(|e| e.to_string())?;
+    let output_bytes =
+        image_io::encode_image(&image, image::ImageFormat::Jpeg).map_err(|e| e.to_string())?;
 
     // Write to file
     std::fs::write(&final_output_path, output_bytes).map_err(|e| e.to_string())?;

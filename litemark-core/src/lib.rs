@@ -17,8 +17,8 @@
 //! - 可组合性：每个模块可独立使用，也可组合使用
 
 pub mod error;
-pub mod image_io;
 pub mod exif;
+pub mod image_io;
 pub mod layout;
 pub mod renderer;
 

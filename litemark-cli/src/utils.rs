@@ -98,15 +98,16 @@ pub fn find_images_in_directory(dir: &str) -> Result<Vec<String>, Box<dyn std::e
     {
         let path = entry.path();
         if path.is_file()
-            && let Some(ext) = path.extension() {
-                let ext = ext.to_string_lossy().to_lowercase();
-                if matches!(
-                    ext.as_str(),
-                    "jpg" | "jpeg" | "png" | "gif" | "bmp" | "webp" | "heic" | "heif"
-                ) {
-                    images.push(path.to_string_lossy().to_string());
-                }
+            && let Some(ext) = path.extension()
+        {
+            let ext = ext.to_string_lossy().to_lowercase();
+            if matches!(
+                ext.as_str(),
+                "jpg" | "jpeg" | "png" | "gif" | "bmp" | "webp" | "heic" | "heif"
+            ) {
+                images.push(path.to_string_lossy().to_string());
             }
+        }
     }
 
     Ok(images)

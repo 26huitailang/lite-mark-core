@@ -1,5 +1,5 @@
-mod commands;
 mod batch;
+mod commands;
 mod utils;
 
 use clap::{Parser, Subcommand};
