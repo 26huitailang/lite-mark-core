@@ -140,7 +140,12 @@ impl WatermarkRenderer {
         let frame_y = original_height;
         match template.render_mode {
             RenderMode::BottomFrame => {
-                self.render_frame_background(&mut frame_image, frame_y, new_width, bottom_frame_height)?;
+                self.render_frame_background(
+                    &mut frame_image,
+                    frame_y,
+                    new_width,
+                    bottom_frame_height,
+                )?;
                 self.render_frame_content(
                     &mut frame_image,
                     template,
@@ -153,7 +158,12 @@ impl WatermarkRenderer {
                 )?;
             }
             RenderMode::GradientFrame => {
-                self.render_gradient_background(&mut frame_image, frame_y, new_width, bottom_frame_height)?;
+                self.render_gradient_background(
+                    &mut frame_image,
+                    frame_y,
+                    new_width,
+                    bottom_frame_height,
+                )?;
                 self.render_frame_content(
                     &mut frame_image,
                     template,
@@ -166,7 +176,12 @@ impl WatermarkRenderer {
                 )?;
             }
             RenderMode::Minimal => {
-                self.render_frame_background(&mut frame_image, frame_y, new_width, bottom_frame_height)?;
+                self.render_frame_background(
+                    &mut frame_image,
+                    frame_y,
+                    new_width,
+                    bottom_frame_height,
+                )?;
                 self.render_minimal_line(&mut frame_image, frame_y, new_width)?;
                 self.render_frame_content(
                     &mut frame_image,
@@ -285,14 +300,24 @@ impl WatermarkRenderer {
             let alpha = (color[3] as f32 * bg.opacity.clamp(0.0, 1.0)).min(255.0) as u8;
             let bg_color = Rgba([color[0], color[1], color[2], alpha]);
             let radius = bg.radius.unwrap_or(12);
-            self.render_rounded_rect(&mut rgba_image, box_x, box_y, box_width, box_height, radius, bg_color);
+            self.render_rounded_rect(
+                &mut rgba_image,
+                box_x,
+                box_y,
+                box_width,
+                box_height,
+                radius,
+                bg_color,
+            );
         } else {
             // No background box: draw a subtle bottom gradient mask for readability
             let mask_height = (box_height + margin * 2).min(height);
             let mask_y_start = height.saturating_sub(mask_height);
             for dy in 0..mask_height {
                 let y = mask_y_start + dy;
-                if y >= height { continue; }
+                if y >= height {
+                    continue;
+                }
                 let progress = dy as f32 / mask_height as f32;
                 let alpha = (progress * progress * 180.0) as u8;
                 let overlay = Rgba([0, 0, 0, alpha]);
@@ -443,21 +468,49 @@ impl WatermarkRenderer {
 
         // Layout parameters
         let column1_x = padding;
-        let logo_height = (height as f32 / 3.0) as u32;
-        let estimated_logo_width = (logo_height as f32 * 2.5) as u32;
 
-        // Right-aligned columns (use saturating_sub to prevent overflow on tiny images)
+        // Compute actual text widths for balanced layout
+        let mut max_left_text_width = 0.0f32;
+        for (text, font_size, _, weight_opt) in &left_column_items {
+            let w = self.text_width(text, *font_size as u32, weight_opt.as_ref());
+            max_left_text_width = max_left_text_width.max(w);
+        }
+        let left_column_end =
+            (column1_x as f32 + max_left_text_width + padding as f32 / 2.0) as u32;
+
+        let mut max_right_text_width = 0.0f32;
+        for (text, font_size, _, weight_opt) in &right_column_items {
+            let w = self.text_width(text, *font_size as u32, weight_opt.as_ref());
+            max_right_text_width = max_right_text_width.max(w);
+        }
+
         let column4_x_end = width.saturating_sub(padding);
-        let estimated_column4_width = width / 3;
-        let column4_x = column4_x_end.saturating_sub(estimated_column4_width);
+        let right_column_width = (max_right_text_width + padding as f32).ceil() as u32;
+        let column4_x = column4_x_end.saturating_sub(right_column_width);
 
-        let separator_x = column4_x.saturating_sub(padding * 3);
-        let logo_center_x = separator_x
-            .saturating_sub(padding * 3)
-            .saturating_sub(estimated_logo_width / 2);
+        // Place separator in the middle of left and right columns
+        let separator_x = (left_column_end + column4_x) / 2;
+
+        // Logo sits between left column and separator
+        let logo_height = (height as f32 / 3.0) as u32;
+        let logo_center_x = (left_column_end + separator_x) / 2;
+
+        // Vertically center text within the frame
+        let left_total_height = left_column_items
+            .iter()
+            .map(|(_, fs, _, _)| *fs as u32)
+            .sum::<u32>()
+            + ((left_column_items.len().saturating_sub(1)) as u32 * (padding / 3));
+        let right_total_height = right_column_items
+            .iter()
+            .map(|(_, fs, _, _)| *fs as u32)
+            .sum::<u32>()
+            + ((right_column_items.len().saturating_sub(1)) as u32 * (padding / 3));
+        let max_text_height = left_total_height.max(right_total_height);
+        let base_current_y = frame_y + (height.saturating_sub(max_text_height)) / 2;
 
         // Render Column 1: Author, Camera, Date (left side)
-        let mut current_y = frame_y + padding * 2;
+        let mut current_y = base_current_y;
         for (text, font_size, color_opt, weight_opt) in left_column_items.iter() {
             let color = if let Some(color_str) = color_opt {
                 color::parse_color(color_str).unwrap_or(Rgba([0, 0, 0, 255]))
@@ -495,11 +548,11 @@ impl WatermarkRenderer {
             separator_x,
             frame_y + padding,
             height - padding * 2,
-            Rgba([232, 232, 232, 255]), // #E8E8E8 - lighter separator
+            Rgba([224, 224, 224, 255]), // #E0E0E0 - subtle separator
         );
 
         // Render Column 4: Other EXIF info (right side, right-aligned)
-        current_y = frame_y + padding * 2;
+        current_y = base_current_y;
         for (text, font_size, color_opt, weight_opt) in right_column_items.iter() {
             let color = if let Some(color_str) = color_opt {
                 color::parse_color(color_str).unwrap_or(Rgba([0, 0, 0, 255]))
@@ -548,9 +601,11 @@ mod tests {
         let renderer = WatermarkRenderer::new().unwrap();
         let original_width = 800;
         let original_height = 600;
-        let mut image = DynamicImage::ImageRgb8(image::RgbImage::from_fn(original_width, original_height, |_x, _y| {
-            image::Rgb([128, 128, 128])
-        }));
+        let mut image = DynamicImage::ImageRgb8(image::RgbImage::from_fn(
+            original_width,
+            original_height,
+            |_x, _y| image::Rgb([128, 128, 128]),
+        ));
 
         let template = Template {
             name: "Test".to_string(),
@@ -589,13 +644,22 @@ mod tests {
             original_height + expected_frame,
             "边框高度必须符合公式：short_edge({}) * ratio({}) = {}，max(80) = {}，\n\
              期望总高度 = {} + {} = {}，实际 = {}",
-            short_edge, template.frame_height_ratio, (short_edge * template.frame_height_ratio) as u32,
-            expected_frame, original_height, expected_frame, original_height + expected_frame,
+            short_edge,
+            template.frame_height_ratio,
+            (short_edge * template.frame_height_ratio) as u32,
+            expected_frame,
+            original_height,
+            expected_frame,
+            original_height + expected_frame,
             image.height()
         );
 
         // 契约 2：宽度不变
-        assert_eq!(image.width(), original_width, "非 Overlay 模式下宽度必须保持不变");
+        assert_eq!(
+            image.width(),
+            original_width,
+            "非 Overlay 模式下宽度必须保持不变"
+        );
 
         // 契约 3：边框区域有可见内容（非透明）
         let border_pixel = image.get_pixel(original_width / 2, original_height + 5);
@@ -611,9 +675,11 @@ mod tests {
         let renderer = WatermarkRenderer::new().unwrap();
         let original_width = 800;
         let original_height = 600;
-        let mut image = DynamicImage::ImageRgb8(image::RgbImage::from_fn(original_width, original_height, |_x, _y| {
-            image::Rgb([128, 128, 128])
-        }));
+        let mut image = DynamicImage::ImageRgb8(image::RgbImage::from_fn(
+            original_width,
+            original_height,
+            |_x, _y| image::Rgb([128, 128, 128]),
+        ));
 
         let template = Template {
             name: "OverlayTest".to_string(),
@@ -639,7 +705,8 @@ mod tests {
         let mut variables = HashMap::new();
         variables.insert("Author".to_string(), "Test".to_string());
 
-        let result = renderer.render_watermark_with_logo_bytes(&mut image, &template, &variables, None);
+        let result =
+            renderer.render_watermark_with_logo_bytes(&mut image, &template, &variables, None);
         assert!(result.is_ok());
 
         // Overlay 模式下尺寸必须完全不变
@@ -677,7 +744,8 @@ mod tests {
 
         let variables = HashMap::new(); // 空变量
 
-        let result = renderer.render_watermark_with_logo_bytes(&mut image, &template, &variables, None);
+        let result =
+            renderer.render_watermark_with_logo_bytes(&mut image, &template, &variables, None);
         assert!(result.is_ok(), "空变量不应导致 panic");
 
         // 验证输出可编码
@@ -728,7 +796,10 @@ mod tests {
         let renderer = WatermarkRenderer::new().unwrap();
         let w_bold = renderer.text_width("A", 16, Some(&FontWeight::Bold));
         let w_normal = renderer.text_width("A", 16, Some(&FontWeight::Normal));
-        assert_eq!(w_bold, w_normal, "无 Bold 字体时，Bold 和 Normal 应使用同一字体");
+        assert_eq!(
+            w_bold, w_normal,
+            "无 Bold 字体时，Bold 和 Normal 应使用同一字体"
+        );
     }
 
     #[test]
@@ -739,7 +810,15 @@ mod tests {
         let before_count = image.pixels().filter(|p| p.0 != [0, 0, 0, 255]).count();
         assert_eq!(before_count, 0, "初始画布应全黑");
 
-        renderer.render_text_simple(&mut image, "A", 10, 10, 16, Rgba([255, 255, 255, 255]), None);
+        renderer.render_text_simple(
+            &mut image,
+            "A",
+            10,
+            10,
+            16,
+            Rgba([255, 255, 255, 255]),
+            None,
+        );
 
         let after_count = image.pixels().filter(|p| p.0 != [0, 0, 0, 255]).count();
         assert!(after_count > 0, "渲染文本后画布应有像素变化");
@@ -754,7 +833,10 @@ mod tests {
         let logo_img = image::RgbaImage::from_pixel(4, 4, Rgba([255, 0, 0, 255]));
         let mut logo_bytes = Vec::new();
         logo_img
-            .write_to(&mut std::io::Cursor::new(&mut logo_bytes), image::ImageFormat::Png)
+            .write_to(
+                &mut std::io::Cursor::new(&mut logo_bytes),
+                image::ImageFormat::Png,
+            )
             .unwrap();
 
         let before_count = image.pixels().filter(|p| p.0 != [0, 0, 0, 255]).count();
