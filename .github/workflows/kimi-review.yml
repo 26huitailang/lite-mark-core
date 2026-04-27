@@ -1,0 +1,159 @@
+name: Kimi Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+    # 限制路径，避免纯文档/配置类 PR 触发审查
+    paths:
+      - 'litemark-core/src/**'
+      - 'litemark-cli/src/**'
+      - 'litemark-wasm/src/**'
+      - 'tests/src/**'
+      - 'Cargo.toml'
+      - '**/Cargo.toml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Checkout PR
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Kimi CLI
+        run: |
+          curl -LsSf https://code.kimi.com/install.sh | bash
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Verify Kimi CLI
+        run: |
+          kimi --version
+
+      - name: Run Kimi Review
+        env:
+          KIMI_API_KEY: ${{ secrets.KIMI_API_KEY }}
+          # 可选：指定模型
+          # KIMI_MODEL: kimi-k2-5
+          REVIEW_MAX_DIFF: "1200"
+          REVIEW_OUTPUT: "review_report.md"
+          REVIEW_JSON_OUTPUT: "review_result.json"
+        run: |
+          # 配置 kimi API key（如果 ~/.kimi/config.toml 未配置）
+          mkdir -p ~/.kimi
+          cat > ~/.kimi/config.toml << EOF
+          [llm]
+          provider = "kimi"
+          model = "kimi-k2-5"
+          api_key = "${KIMI_API_KEY}"
+          EOF
+
+          # 运行审查脚本
+          python3 scripts/review.py pr origin/${{ github.base_ref }}
+
+      - name: Upload Review Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: review-results-${{ github.event.pull_request.number }}-${{ github.run_id }}
+          path: |
+            review_result.json
+            review_report.md
+
+      - name: Post Review Comment
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = 'review_result.json';
+
+            if (!fs.existsSync(path)) {
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: `## 🤖 Kimi Code Review\n\n❌ 审查脚本未能生成结果，请检查 workflow 日志。`
+              });
+              return;
+            }
+
+            const raw = fs.readFileSync(path, 'utf8');
+            let result;
+            try {
+              result = JSON.parse(raw);
+            } catch (e) {
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: `## 🤖 Kimi Code Review\n\n❌ 无法解析审查结果 JSON。`
+              });
+              return;
+            }
+
+            const stats = result.stats || {};
+            let body = `## 🤖 Kimi Code Review\n\n`;
+            body += `**Summary**: ${result.summary || 'N/A'}\n\n`;
+            body += `📊 ${stats.files_changed || 0} files, +${stats.lines_added || 0}/-${stats.lines_removed || 0} lines\n\n`;
+
+            const issues = result.issues || [];
+            if (issues.length > 0) {
+              const high = issues.filter(i => i.severity === 'high').length;
+              const medium = issues.filter(i => i.severity === 'medium').length;
+              const low = issues.filter(i => i.severity === 'low').length;
+              body += `## ⚠️ ${issues.length} issue(s) found (🔴${high} 🟡${medium} 🟢${low})\n\n`;
+
+              // 最多展示 10 个问题在评论里，避免过长
+              const display = issues.slice(0, 10);
+              for (const issue of display) {
+                const emoji = issue.severity === 'high' ? '🔴' : issue.severity === 'medium' ? '🟡' : '🟢';
+                body += `${emoji} **[${issue.severity.toUpperCase()}]** \`${issue.file}:${issue.line}\` — ${issue.category}\n`;
+                body += `> ${issue.description}\n\n`;
+                body += `💡 *Suggestion*: ${issue.suggestion}\n\n`;
+              }
+              if (issues.length > 10) {
+                body += `*... and ${issues.length - 10} more issues. See full report in artifacts.*\n\n`;
+              }
+            } else {
+              body += `## ✅ No issues found\n\n`;
+            }
+
+            const verdict = result.approve ? '✅ Approve' : '❌ Request Changes';
+            body += `## Verdict: ${verdict}\n\n`;
+            body += `💬 ${result.comment || ''}\n\n`;
+            body += `---\n*Powered by [Kimi Code CLI](https://github.com/MoonshotAI/kimi-cli)*`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
+
+      - name: Check High Severity Issues
+        if: always()
+        run: |
+          python3 -c "
+          import json, sys
+          with open('review_result.json') as f:
+              data = json.load(f)
+          high = [i for i in data.get('issues', []) if i.get('severity') == 'high']
+          if high:
+              print(f'::error::Found {len(high)} HIGH severity issue(s)')
+              sys.exit(1)
+          else:
+              print('No high severity issues found.')
+          "
