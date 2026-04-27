@@ -51,16 +51,7 @@ jobs:
           REVIEW_OUTPUT: "review_report.md"
           REVIEW_JSON_OUTPUT: "review_result.json"
         run: |
-          # 配置 kimi API key（如果 ~/.kimi/config.toml 未配置）
-          mkdir -p ~/.kimi
-          cat > ~/.kimi/config.toml << EOF
-          [llm]
-          provider = "kimi"
-          model = "kimi-k2-5"
-          api_key = "${KIMI_API_KEY}"
-          EOF
-
-          # 运行审查脚本
+          # 运行审查脚本（KIMI_API_KEY 环境变量会被 kimi CLI 自动读取）
           python3 scripts/review.py pr origin/${{ github.base_ref }}
 
       - name: Upload Review Artifacts

@@ -167,7 +167,11 @@ def run_kimi_review(prompt: str, agent_file: str, model: Optional[str] = None) -
         return extract_json(raw)
 
     if result.returncode != 0:
-        print(f"[review] kimi 执行失败:\n{result.stderr}", file=sys.stderr)
+        print(f"[review] kimi 执行失败 (exit={result.returncode}):", file=sys.stderr)
+        if result.stdout:
+            print(f"[review] stdout:\n{result.stdout[:2000]}", file=sys.stderr)
+        if result.stderr:
+            print(f"[review] stderr:\n{result.stderr[:2000]}", file=sys.stderr)
         sys.exit(1)
 
     raw = result.stdout.strip()
