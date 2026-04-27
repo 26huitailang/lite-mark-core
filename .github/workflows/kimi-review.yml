@@ -46,12 +46,27 @@ jobs:
         env:
           KIMI_API_KEY: ${{ secrets.KIMI_API_KEY }}
           # 可选：指定模型
-          # KIMI_MODEL: kimi-k2-5
+          # KIMI_MODEL: moonshot-cn/kimi-k2.5
           REVIEW_MAX_DIFF: "1200"
           REVIEW_OUTPUT: "review_report.md"
           REVIEW_JSON_OUTPUT: "review_result.json"
         run: |
-          # 运行审查脚本（KIMI_API_KEY 环境变量会被 kimi CLI 自动读取）
+          # 配置 kimi CLI（需要完整的 models + providers 配置）
+          mkdir -p ~/.kimi
+          cat > ~/.kimi/config.toml << EOF
+          default_model = "moonshot-cn/kimi-k2.5"
+
+          [models."moonshot-cn/kimi-k2.5"]
+          provider = "moonshot-cn"
+          model = "kimi-k2.5"
+          max_context_size = 262144
+
+          [providers.moonshot-cn]
+          type = "kimi"
+          base_url = "https://api.moonshot.cn/v1"
+          api_key = "${KIMI_API_KEY}"
+          EOF
+
           python3 scripts/review.py pr origin/${{ github.base_ref }}
 
       - name: Upload Review Artifacts
