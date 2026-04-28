@@ -211,6 +211,9 @@ def run_kimi_review(
 
     system_prompt = load_system_prompt(system_prompt_path)
     model = model or os.environ.get("KIMI_MODEL", DEFAULT_MODEL)
+    # Moonshot API 模型名不需要 provider 前缀（如 moonshot-cn/kimi-k2.6 -> kimi-k2.6）
+    if "/" in model:
+        model = model.split("/")[-1]
 
     print(f"[review] Calling Moonshot API (model={model})...", file=sys.stderr)
     try:
