@@ -1,0 +1,227 @@
+{
+  "scan_time": "2026-04-17T14:27:20.507393+00:00",
+  "total_files": 22,
+  "files": [
+    {
+      "path": "README.md",
+      "type": "readme",
+      "priority": "high",
+      "check_items": [
+        "项目描述是否准确",
+        "安装步骤是否可用",
+        "快速开始示例是否正确",
+        "功能列表是否完整"
+      ]
+    },
+    {
+      "path": "skills.md",
+      "type": "skills",
+      "priority": "high",
+      "check_items": [
+        "skill 描述是否准确",
+        "触发条件是否合理"
+      ]
+    },
+    {
+      "path": "AGENTS.md",
+      "type": "agents",
+      "priority": "high",
+      "check_items": [
+        "项目结构描述是否与目录一致",
+        "技术栈版本是否正确",
+        "构建命令是否可用",
+        "开发规范是否被遵循"
+      ]
+    },
+    {
+      "path": "tests/README.md",
+      "type": "readme",
+      "priority": "high",
+      "check_items": [
+        "项目描述是否准确",
+        "安装步骤是否可用",
+        "快速开始示例是否正确",
+        "功能列表是否完整"
+      ]
+    },
+    {
+      "path": "litemark-core/ARCHITECTURE.md",
+      "type": "architecture",
+      "priority": "high",
+      "check_items": [
+        "架构描述是否与代码一致",
+        "模块依赖关系是否正确",
+        "数据流描述是否准确"
+      ]
+    },
+    {
+      "path": "litemark-core/README.md",
+      "type": "readme",
+      "priority": "high",
+      "check_items": [
+        "项目描述是否准确",
+        "安装步骤是否可用",
+        "快速开始示例是否正确",
+        "功能列表是否完整"
+      ]
+    },
+    {
+      "path": "Cargo.toml",
+      "type": "config",
+      "priority": "medium",
+      "check_items": [
+        "配置项说明是否完整",
+        "默认值是否正确",
+        "示例配置是否可用"
+      ]
+    },
+    {
+      "path": "Makefile",
+      "type": "documentation",
+      "priority": "medium",
+      "check_items": [
+        "内容是否过时",
+        "链接是否有效",
+        "示例代码是否正确"
+      ]
+    },
+    {
+      "path": "litemark-wasm/Cargo.toml",
+      "type": "config",
+      "priority": "medium",
+      "check_items": [
+        "配置项说明是否完整",
+        "默认值是否正确",
+        "示例配置是否可用"
+      ]
+    },
+    {
+      "path": "litemark-wasm/USAGE.md",
+      "type": "documentation",
+      "priority": "medium",
+      "check_items": [
+        "内容是否过时",
+        "链接是否有效",
+        "示例代码是否正确"
+      ]
+    },
+    {
+      "path": "litemark-wasm/pkg/package.json",
+      "type": "config",
+      "priority": "medium",
+      "check_items": [
+        "配置项说明是否完整",
+        "默认值是否正确",
+        "示例配置是否可用"
+      ]
+    },
+    {
+      "path": "tests/Cargo.toml",
+      "type": "config",
+      "priority": "medium",
+      "check_items": [
+        "配置项说明是否完整",
+        "默认值是否正确",
+        "示例配置是否可用"
+      ]
+    },
+    {
+      "path": "litemark-core/Cargo.toml",
+      "type": "config",
+      "priority": "medium",
+      "check_items": [
+        "配置项说明是否完整",
+        "默认值是否正确",
+        "示例配置是否可用"
+      ]
+    },
+    {
+      "path": "docs/resolution_scaling_analysis.md",
+      "type": "documentation",
+      "priority": "medium",
+      "check_items": [
+        "内容是否过时",
+        "链接是否有效",
+        "示例代码是否正确"
+      ]
+    },
+    {
+      "path": "docs/changelog/v0.0.2.md",
+      "type": "documentation",
+      "priority": "medium",
+      "check_items": [
+        "内容是否过时",
+        "链接是否有效",
+        "示例代码是否正确"
+      ]
+    },
+    {
+      "path": "examples/exif_extraction.md",
+      "type": "documentation",
+      "priority": "medium",
+      "check_items": [
+        "内容是否过时",
+        "链接是否有效",
+        "示例代码是否正确"
+      ]
+    },
+    {
+      "path": "examples/chinese_font_guide.md",
+      "type": "documentation",
+      "priority": "medium",
+      "check_items": [
+        "内容是否过时",
+        "链接是否有效",
+        "示例代码是否正确"
+      ]
+    },
+    {
+      "path": "examples/basic_usage.md",
+      "type": "documentation",
+      "priority": "medium",
+      "check_items": [
+        "内容是否过时",
+        "链接是否有效",
+        "示例代码是否正确"
+      ]
+    },
+    {
+      "path": "templates/TEMPLATE_GUIDE.md",
+      "type": "documentation",
+      "priority": "medium",
+      "check_items": [
+        "内容是否过时",
+        "链接是否有效",
+        "示例代码是否正确"
+      ]
+    },
+    {
+      "path": "litemark-cli/Cargo.toml",
+      "type": "config",
+      "priority": "medium",
+      "check_items": [
+        "配置项说明是否完整",
+        "默认值是否正确",
+        "示例配置是否可用"
+      ]
+    },
+    {
+      "path": "TODO.md",
+      "type": "todo",
+      "priority": "low",
+      "check_items": [
+        "待办事项是否已完成",
+        "优先级是否合理"
+      ]
+    },
+    {
+      "path": "plan.md",
+      "type": "plan",
+      "priority": "low",
+      "check_items": [
+        "计划步骤是否完成",
+        "时间安排是否合理"
+      ]
+    }
+  ]
+}

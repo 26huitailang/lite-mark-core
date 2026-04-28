@@ -3,24 +3,25 @@
     "anchor": "bottom-left",
     "padding": 0,
     "frame_height_ratio": 0.06,
-    "logo_size_ratio": 0.40,
-    "primary_font_ratio": 0.28,
+    "logo_size_ratio": 0.0,
+    "primary_font_ratio": 0.30,
     "secondary_font_ratio": 0.18,
-    "padding_ratio": 0.08,
+    "padding_ratio": 0.10,
+    "render_mode": "minimal",
     "items": [
         {
-            "type": "logo",
-            "value": "",
-            "font_size_ratio": 0.0,
-            "weight": "normal",
-            "color": null
-        },
-        {
             "type": "text",
-            "value": "{Author} • {Aperture} • {Shutter} • ISO {ISO}",
+            "value": "{Author}",
             "font_size_ratio": 0.28,
             "weight": "normal",
             "color": "#1A1A1A"
+        },
+        {
+            "type": "text",
+            "value": "{Camera}  ·  {Focal}  ·  {Aperture}  ·  ISO {ISO}",
+            "font_size_ratio": 0.16,
+            "weight": "normal",
+            "color": "#777777"
         }
     ],
     "background": null

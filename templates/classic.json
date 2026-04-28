@@ -3,10 +3,11 @@
     "anchor": "bottom-left",
     "padding": 0,
     "frame_height_ratio": 0.10,
-    "logo_size_ratio": 0.35,
-    "primary_font_ratio": 0.20,
-    "secondary_font_ratio": 0.14,
-    "padding_ratio": 0.10,
+    "logo_size_ratio": 0.28,
+    "primary_font_ratio": 0.28,
+    "secondary_font_ratio": 0.17,
+    "padding_ratio": 0.22,
+    "render_mode": "bottom-frame",
     "items": [
         {
             "type": "logo",
@@ -18,22 +19,31 @@
         {
             "type": "text",
             "value": "{Author}",
-            "font_size_ratio": 0.20,
+            "font_size_ratio": 0.30,
             "weight": "bold",
-            "color": "#FFFFFF"
+            "color": "#1A1A1A"
         },
         {
             "type": "text",
-            "value": "{Aperture} | ISO {ISO} | {Shutter}",
-            "font_size_ratio": 0.14,
+            "value": "{DateTime}",
+            "font_size_ratio": 0.16,
             "weight": "normal",
-            "color": "#FFFFFF"
+            "color": "#555555"
+        },
+        {
+            "type": "text",
+            "value": "{Camera}  ·  {Lens}",
+            "font_size_ratio": 0.20,
+            "weight": "normal",
+            "color": "#2a2a2a"
+        },
+        {
+            "type": "text",
+            "value": "{Focal}  ·  {Aperture}  ·  {Shutter}  ·  ISO {ISO}",
+            "font_size_ratio": 0.17,
+            "weight": "normal",
+            "color": "#555555"
         }
     ],
-    "background": {
-        "type": "rect",
-        "opacity": 0.3,
-        "radius": 6,
-        "color": "#000000"
-    }
+    "background": null
 }

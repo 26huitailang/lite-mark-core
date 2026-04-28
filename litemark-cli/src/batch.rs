@@ -1,5 +1,5 @@
-use litemark_core::{image_io, exif, layout, renderer::WatermarkRenderer};
 use indicatif::{ProgressBar, ProgressStyle};
+use litemark_core::{exif, image_io, layout, renderer::WatermarkRenderer};
 use rayon::prelude::*;
 use std::time::Instant;
 
@@ -34,10 +34,10 @@ struct BatchConfig {
 impl BatchConfig {
     fn from_args(concurrency: Option<usize>) -> Self {
         let detected_cpus = num_cpus::get();
-        let default_concurrency = (detected_cpus * 2).max(2).min(32);
+        let default_concurrency = (detected_cpus * 2).clamp(2, 32);
 
         let concurrency = concurrency.unwrap_or(default_concurrency);
-        let concurrency = concurrency.max(1).min(32); // Clamp to [1, 32]
+        let concurrency = concurrency.clamp(1, 32); // Clamp to [1, 32]
 
         Self { concurrency }
     }
@@ -247,8 +247,8 @@ fn process_single_image_in_batch(
     };
 
     // Encode image to bytes
-    let output_bytes = image_io::encode_image(&image, image::ImageFormat::Jpeg)
-        .map_err(|e| e.to_string())?;
+    let output_bytes =
+        image_io::encode_image(&image, image::ImageFormat::Jpeg).map_err(|e| e.to_string())?;
 
     // Write to file
     std::fs::write(&final_output_path, output_bytes).map_err(|e| e.to_string())?;

@@ -1,6 +1,5 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::path::Path;
 
 // Default values for template scaling ratios
 fn default_frame_height_ratio() -> f32 {
@@ -21,6 +20,10 @@ fn default_secondary_font_ratio() -> f32 {
 
 fn default_padding_ratio() -> f32 {
     0.10
+}
+
+fn default_render_mode() -> RenderMode {
+    RenderMode::BottomFrame
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -45,6 +48,18 @@ pub struct Template {
     /// Padding as ratio of frame height (default: 0.10 = 10%)
     #[serde(default = "default_padding_ratio")]
     pub padding_ratio: f32,
+    /// Render mode for the watermark (default: bottom-frame)
+    #[serde(default = "default_render_mode")]
+    pub render_mode: RenderMode,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum RenderMode {
+    BottomFrame,
+    GradientFrame,
+    Overlay,
+    Minimal,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -57,6 +72,8 @@ pub enum Anchor {
     BottomLeft,
     #[serde(rename = "bottom-right")]
     BottomRight,
+    #[serde(rename = "bottom-center")]
+    BottomCenter,
     #[serde(rename = "center")]
     Center,
 }
@@ -143,17 +160,24 @@ fn substitute_text(text: &str, variables: &HashMap<String, String>) -> String {
 
 pub fn create_builtin_templates() -> Vec<Template> {
     let mut templates = vec![];
-    let manifest_templates_dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../templates");
 
-    for template_name in ["classic", "compact", "professional"] {
-        let relative_path = Path::new("templates").join(format!("{}.json", template_name));
-        let manifest_path = manifest_templates_dir.join(format!("{}.json", template_name));
-        let content = std::fs::read_to_string(&relative_path)
-            .or_else(|_| std::fs::read_to_string(&manifest_path));
-        if let Ok(content) = content {
-            if let Ok(template) = Template::from_json(&content) {
-                templates.push(template);
-            }
+    let template_sources = [
+        ("classic", include_str!("../../templates/classic.json")),
+        ("compact", include_str!("../../templates/compact.json")),
+        (
+            "professional",
+            include_str!("../../templates/professional.json"),
+        ),
+        ("overlay", include_str!("../../templates/overlay.json")),
+    ];
+
+    for (name, content) in template_sources {
+        match Template::from_json(content) {
+            Ok(template) => templates.push(template),
+            Err(e) => eprintln!(
+                "Warning: failed to parse built-in template '{}': {}",
+                name, e
+            ),
         }
     }
 
@@ -184,6 +208,7 @@ mod tests {
             primary_font_ratio: 0.2,
             secondary_font_ratio: 0.14,
             padding_ratio: 0.1,
+            render_mode: RenderMode::BottomFrame,
         };
 
         let mut variables = HashMap::new();

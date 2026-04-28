@@ -119,16 +119,20 @@ impl ExifData {
 /// * `Err` - 解析错误
 ///
 /// # Examples
-/// ```
+/// ```no_run
+/// use litemark_core::exif::extract_from_bytes;
+/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// let image_bytes = std::fs::read("photo.jpg")?;
 /// let exif_data = extract_from_bytes(&image_bytes)?;
 /// if let Some(iso) = exif_data.iso {
 ///     println!("ISO: {}", iso);
 /// }
+/// # Ok(())
+/// # }
 /// ```
 pub fn extract_from_bytes(image_data: &[u8]) -> Result<ExifData, Box<dyn std::error::Error>> {
     let mut cursor = Cursor::new(image_data);
-    
+
     // 解析 EXIF 数据
     let exifreader = Reader::new();
     let exif = match exifreader.read_from_container(&mut cursor) {
@@ -162,10 +166,10 @@ fn extract_iso(exif: &exif::Exif) -> Option<u32> {
 /// 提取光圈值
 fn extract_aperture(exif: &exif::Exif) -> Option<f64> {
     let field = exif.get_field(Tag::FNumber, In::PRIMARY)?;
-    if let Value::Rational(rationals) = &field.value {
-        if let Some(rational) = rationals.first() {
-            return Some(rational.num as f64 / rational.denom as f64);
-        }
+    if let Value::Rational(rationals) = &field.value
+        && let Some(rational) = rationals.first()
+    {
+        return Some(rational.num as f64 / rational.denom as f64);
     }
     None
 }
@@ -173,11 +177,11 @@ fn extract_aperture(exif: &exif::Exif) -> Option<f64> {
 /// 提取快门速度并格式化
 fn extract_shutter_speed(exif: &exif::Exif) -> Option<String> {
     let field = exif.get_field(Tag::ExposureTime, In::PRIMARY)?;
-    if let Value::Rational(rationals) = &field.value {
-        if let Some(rational) = rationals.first() {
-            let exposure_time = rational.num as f64 / rational.denom as f64;
-            return Some(format_shutter_speed(exposure_time));
-        }
+    if let Value::Rational(rationals) = &field.value
+        && let Some(rational) = rationals.first()
+    {
+        let exposure_time = rational.num as f64 / rational.denom as f64;
+        return Some(format_shutter_speed(exposure_time));
     }
     None
 }
@@ -195,10 +199,10 @@ fn format_shutter_speed(exposure_time: f64) -> String {
 /// 提取焦距
 fn extract_focal_length(exif: &exif::Exif) -> Option<f64> {
     let field = exif.get_field(Tag::FocalLength, In::PRIMARY)?;
-    if let Value::Rational(rationals) = &field.value {
-        if let Some(rational) = rationals.first() {
-            return Some(rational.num as f64 / rational.denom as f64);
-        }
+    if let Value::Rational(rationals) = &field.value
+        && let Some(rational) = rationals.first()
+    {
+        return Some(rational.num as f64 / rational.denom as f64);
     }
     None
 }
@@ -219,12 +223,16 @@ fn extract_lens_model(exif: &exif::Exif) -> Option<String> {
     Some(value.trim_matches('"').to_string())
 }
 
-/// 提取拍摄时间
+/// 提取拍摄时间，格式化为简短日期
 fn extract_date_time(exif: &exif::Exif) -> Option<String> {
     let field = exif.get_field(Tag::DateTimeOriginal, In::PRIMARY)?;
-    // Use display_value but remove surrounding quotes if present
     let value = field.display_value().to_string();
-    Some(value.trim_matches('"').to_string())
+    let value = value.trim_matches('"');
+
+    // EXIF DateTimeOriginal 格式通常为 "2025:10:18 16:13:26"
+    // 提取日期部分并转换为 "2025.10.18" 格式
+    let date_part = value.split_whitespace().next()?;
+    Some(date_part.replace(':', "."))
 }
 
 /// 提取作者/摄影师

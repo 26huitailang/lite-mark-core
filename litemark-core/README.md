@@ -1,11 +1,11 @@
 # LiteMark Core Library
 
-LiteMark 核心库，提供纯粹的图像水印处理能力，支持多平台复用（CLI、Web、iOS、Desktop）。
+LiteMark 核心库，提供纯粹的图像水印处理能力，支持多平台复用（CLI、Web、Desktop）。
 
 ## 功能特性
 
 - **平台无关**：所有接口基于内存操作，不依赖文件系统
-- **格式支持**：支持 JPEG、PNG、GIF、BMP、WebP、HEIC/HEIF
+- **格式支持**：支持 JPEG、PNG、GIF、BMP、WebP、HEIC/HEIF 解码；编码输出支持 JPEG、PNG、WebP
 - **EXIF 提取**：从图像字节数据中提取拍摄参数
 - **模板引擎**：灵活的 JSON 模板系统
 - **水印渲染**：支持中英文文本、Logo、自定义字体
@@ -21,7 +21,7 @@ use litemark_core::image_io;
 let image_bytes = std::fs::read("photo.jpg")?;
 let image = image_io::decode_image(&image_bytes)?;
 
-// 编码为 JPEG
+// 编码为 JPEG（支持 Jpeg、Png、WebP）
 let output_bytes = image_io::encode_image(&image, image::ImageFormat::Jpeg)?;
 ```
 
@@ -81,10 +81,10 @@ let output = image_io::encode_image(&image, image::ImageFormat::Jpeg)?;
 
 ```rust
 // ✅ 正确：基于内存的接口
-fn decode_image(data: &[u8]) -> Result<DynamicImage, Error>;
+fn decode_image(data: &[u8]) -> Result<DynamicImage, Box<dyn std::error::Error>>;
 
 // ❌ 错误：依赖文件路径
-fn load_image(path: &str) -> Result<DynamicImage, Error>;
+fn load_image(path: &str) -> Result<DynamicImage, Box<dyn std::error::Error>>;
 ```
 
 ### 2. 平台无关
@@ -119,10 +119,11 @@ Core 库仅依赖以下必要的 crate：
 
 - `image`: 图像处理
 - `libheif-rs`: HEIC 格式支持
-- `rusttype`: 字体渲染
+- `ab_glyph`: 字体渲染
 - `kamadak-exif`: EXIF 解析
 - `serde`, `serde_json`: 数据序列化
-- `anyhow`, `thiserror`: 错误处理
+- `thiserror`: 错误处理
+- `anyhow`: 便捷错误处理（内部使用）
 
 **不包含**：
 
@@ -165,14 +166,20 @@ pub fn process_image(
     template_json: &str,
     logo_data: Option<Vec<u8>>,
 ) -> Result<Vec<u8>, JsValue> {
-    let mut image = litemark_core::image_io::decode_image(image_data)?;
-    let exif = litemark_core::exif::extract_from_bytes(image_data)?;
-    let template = litemark_core::layout::Template::from_json(template_json)?;
+    let mut image = litemark_core::image_io::decode_image(image_data)
+        .map_err(|e| JsValue::from_str(&e.to_string()))?;
+    let exif = litemark_core::exif::extract_from_bytes(image_data)
+        .map_err(|e| JsValue::from_str(&e.to_string()))?;
+    let template = litemark_core::layout::Template::from_json(template_json)
+        .map_err(|e| JsValue::from_str(&e.to_string()))?;
     
-    let renderer = litemark_core::renderer::WatermarkRenderer::new()?;
-    renderer.render_watermark_with_logo_bytes(&mut image, &template, &exif.to_variables(), logo_data.as_deref())?;
+    let renderer = litemark_core::renderer::WatermarkRenderer::new()
+        .map_err(|e| JsValue::from_str(&e.to_string()))?;
+    renderer.render_watermark_with_logo_bytes(&mut image, &template, &exif.to_variables(), logo_data.as_deref())
+        .map_err(|e| JsValue::from_str(&e.to_string()))?;
     
-    let output = litemark_core::image_io::encode_image(&image, image::ImageFormat::Jpeg)?;
+    let output = litemark_core::image_io::encode_image(&image, image::ImageFormat::Jpeg)
+        .map_err(|e| JsValue::from_str(&e.to_string()))?;
     Ok(output)
 }
 ```

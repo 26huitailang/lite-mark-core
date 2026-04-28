@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LiteMark 视觉测试报告</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>🎨 LiteMark 视觉测试报告</h1>
+        <p class="generated-at">生成时间: {{ generated_at }}</p>
+        <div class="summary">
+            <span class="success">✅ {{ success_count }} 通过</span>
+            <span class="failure">❌ {{ failure_count }} 失败</span>
+            <span class="total">📊 {{ total_count }} 总计</span>
+        </div>
+    </header>
+    
+    <nav class="filters">
+        <button onclick="filterCases('all')">全部</button>
+        <button onclick="filterCases('success')">通过</button>
+        <button onclick="filterCases('failure')">失败</button>
+        <input type="text" id="search" placeholder="搜索测试用例..." onkeyup="searchCases()">
+    </nav>
+
+    <main id="test-cases">
+        {% for case in results %}
+        <div class="test-case {% if case.success %}success{% else %}failure{% endif %}" data-name="{{ case.name }}">
+            <div class="case-header">
+                <h3>{{ case.id }}: {{ case.name }}</h3>
+                <span class="template-badge">{{ case.template_name }}</span>
+                <span class="size-badge">{{ case.image_size }}</span>
+                <span class="duration">{{ case.duration_ms }}ms</span>
+            </div>
+            
+            <div class="comparison">
+                <div class="image-box">
+                    <img src="{{ case.input_path }}" alt="输入图像" loading="lazy">
+                    <label>输入图像 ({{ case.image_size }})</label>
+                </div>
+                <div class="arrow">→</div>
+                <div class="image-box">
+                    <img src="{{ case.output_path }}" alt="输出图像" loading="lazy">
+                    <label>输出图像 (带水印)</label>
+                </div>
+            </div>
+
+            <div class="metadata">
+                <details>
+                    <summary>📋 模板配置</summary>
+                    <pre class="json"><code>{{ case.metadata.template_json }}</code></pre>
+                </details>
+                
+                <details>
+                    <summary>📷 EXIF 数据</summary>
+                    <table class="exif-table">
+                        <tbody>
+                            {% for key, value in case.metadata.exif_data %}
+                            <tr>
+                                <td class="key">{{ key }}</td>
+                                <td class="value">{{ value }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </details>
+
+                <details>
+                    <summary>🔧 模板变量</summary>
+                    <table class="vars-table">
+                        <tbody>
+                            {% for key, value in case.metadata.variables %}
+                            <tr>
+                                <td class="key">{{ key }}</td>
+                                <td class="value">{{ value }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </details>
+
+                <details>
+                    <summary>📐 实际渲染尺寸</summary>
+                    <table class="metrics-table">
+                        <tbody>
+                            <tr>
+                                <td class="key">短边 (short_edge)</td>
+                                <td class="value">{{ case.metadata.render_metrics.short_edge }} px</td>
+                            </tr>
+                            <tr>
+                                <td class="key">边框高度 (frame_height)</td>
+                                <td class="value">{{ case.metadata.render_metrics.bottom_frame_height }} px</td>
+                            </tr>
+                            <tr>
+                                <td class="key">主字体大小</td>
+                                <td class="value">{{ case.metadata.render_metrics.primary_font_size | round(precision=1) }} px</td>
+                            </tr>
+                            <tr>
+                                <td class="key">次字体大小</td>
+                                <td class="value">{{ case.metadata.render_metrics.secondary_font_size | round(precision=1) }} px</td>
+                            </tr>
+                            <tr>
+                                <td class="key">内边距 (padding)</td>
+                                <td class="value">{{ case.metadata.render_metrics.padding }} px</td>
+                            </tr>
+                            <tr>
+                                <td class="key">高度比例 (ratio)</td>
+                                <td class="value">{{ case.metadata.render_metrics.frame_height_ratio }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </details>
+            </div>
+        </div>
+        {% endfor %}
+    </main>
+
+    <footer>
+        <p>LiteMark Test Suite - Generated by litemark-test-suite</p>
+    </footer>
+
+    <script>
+        function filterCases(type) {
+            const cases = document.querySelectorAll('.test-case');
+            cases.forEach(case_ => {
+                if (type === 'all') {
+                    case_.style.display = 'block';
+                } else {
+                    const isMatch = case_.classList.contains(type);
+                    case_.style.display = isMatch ? 'block' : 'none';
+                }
+            });
+        }
+
+        function searchCases() {
+            const query = document.getElementById('search').value.toLowerCase();
+            const cases = document.querySelectorAll('.test-case');
+            cases.forEach(case_ => {
+                const name = case_.dataset.name.toLowerCase();
+                case_.style.display = name.includes(query) ? 'block' : 'none';
+            });
+        }
+    </script>
+</body>
+</html>

@@ -56,6 +56,39 @@ test-cli:
 	@echo "🧪 测试 litemark-cli..."
 	cargo test -p litemark-cli --lib
 
+# 测试套件命令
+test-suite:
+	@echo "🧪 运行完整测试套件..."
+	cargo test -p litemark-test-suite
+
+test-unit:
+	@echo "🧪 运行单元测试..."
+	cargo test -p litemark-test-suite --test unit -- --test-threads=8
+
+test-integration:
+	@echo "🧪 运行集成测试..."
+	cargo test -p litemark-test-suite --test integration
+
+test-e2e:
+	@echo "🧪 运行 E2E 测试..."
+	cargo test -p litemark-test-suite --test e2e
+
+# 生成视觉报告
+visual-report:
+	@echo "📊 生成视觉报告..."
+	cargo run -p litemark-test-suite --bin generate-report
+	@echo "✅ 报告位置: target/test-reports/latest/index.html"
+
+# 生成测试图片
+generate-test-images:
+	@echo "🖼️ 生成测试图片..."
+	cargo run -p litemark-test-suite --bin generate-test-images
+
+# 健康检查
+health-check:
+	@echo "🏥 运行健康检查..."
+	cargo run -p litemark-test-suite --bin health-check
+
 # 安装到系统
 install: build-release
 	@echo "📦 安装到系统..."

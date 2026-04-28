@@ -81,6 +81,14 @@ pub fn load_logo_bytes(
 
 /// Find all image files in a directory
 pub fn find_images_in_directory(dir: &str) -> Result<Vec<String>, Box<dyn std::error::Error>> {
+    let path = Path::new(dir);
+    if !path.exists() {
+        return Err(format!("Directory '{}' does not exist", dir).into());
+    }
+    if !path.is_dir() {
+        return Err(format!("'{}' is not a directory", dir).into());
+    }
+
     let mut images = Vec::new();
 
     for entry in WalkDir::new(dir)
@@ -89,15 +97,15 @@ pub fn find_images_in_directory(dir: &str) -> Result<Vec<String>, Box<dyn std::e
         .filter_map(|e| e.ok())
     {
         let path = entry.path();
-        if path.is_file() {
-            if let Some(ext) = path.extension() {
-                let ext = ext.to_string_lossy().to_lowercase();
-                if matches!(
-                    ext.as_str(),
-                    "jpg" | "jpeg" | "png" | "gif" | "bmp" | "webp" | "heic" | "heif"
-                ) {
-                    images.push(path.to_string_lossy().to_string());
-                }
+        if path.is_file()
+            && let Some(ext) = path.extension()
+        {
+            let ext = ext.to_string_lossy().to_lowercase();
+            if matches!(
+                ext.as_str(),
+                "jpg" | "jpeg" | "png" | "gif" | "bmp" | "webp" | "heic" | "heif"
+            ) {
+                images.push(path.to_string_lossy().to_string());
             }
         }
     }

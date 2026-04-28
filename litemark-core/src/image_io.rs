@@ -15,10 +15,14 @@ use std::io::Cursor;
 /// * `Err` - 解码错误
 ///
 /// # Examples
-/// ```
+/// ```no_run
+/// use litemark_core::image_io::decode_image;
+/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// let image_bytes = std::fs::read("photo.jpg")?;
 /// let image = decode_image(&image_bytes)?;
 /// println!("Image size: {}x{}", image.width(), image.height());
+/// # Ok(())
+/// # }
 /// ```
 pub fn decode_image(image_data: &[u8]) -> Result<DynamicImage, Box<dyn std::error::Error>> {
     // 尝试检测是否为 HEIC/HEIF 格式
@@ -42,10 +46,15 @@ pub fn decode_image(image_data: &[u8]) -> Result<DynamicImage, Box<dyn std::erro
 /// * `Err` - 编码错误
 ///
 /// # Examples
-/// ```
+/// ```no_run
+/// use litemark_core::image_io::encode_image;
+/// use image::ImageFormat;
+/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// let image = image::DynamicImage::new_rgb8(100, 100);
 /// let jpeg_bytes = encode_image(&image, ImageFormat::Jpeg)?;
 /// std::fs::write("output.jpg", jpeg_bytes)?;
+/// # Ok(())
+/// # }
 /// ```
 pub fn encode_image(
     image: &DynamicImage,
@@ -123,7 +132,7 @@ fn decode_heic_from_bytes(data: &[u8]) -> Result<DynamicImage, Box<dyn std::erro
     // Convert to RGBA format for consistency
     let mut rgba_data = Vec::with_capacity((width * height * 4) as usize);
     let rgb_data = interleaved_plane.data;
-    let stride = interleaved_plane.stride as usize;
+    let stride = interleaved_plane.stride;
 
     for y in 0..height {
         let row_start = y as usize * stride;
