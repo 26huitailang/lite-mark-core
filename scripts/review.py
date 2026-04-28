@@ -33,20 +33,26 @@ DEFAULT_AGENT = ".kimi/agents/reviewer-system.md"
 DEFAULT_MAX_DIFF = 800
 DEFAULT_MODEL = "kimi-k2.6"
 API_BASE_URL = "https://api.moonshot.cn/v1"
-API_TIMEOUT = 600
+API_TIMEOUT_SECONDS = 600      # API 调用超时，覆盖连接+读取
+MAX_PROMPT_SIZE_BYTES = 1 * 1024 * 1024  # 系统提示词文件大小上限 1MB
+MAX_OUTPUT_TOKENS = 8192       # Moonshot API max_tokens 上限
 
 
 def load_system_prompt(path: str) -> str:
     """加载系统提示词，校验路径安全性"""
     p = Path(path).resolve()
     root = Path(__file__).parent.parent.resolve()
-    # 只允许读取项目根目录下的文件
-    if not str(p).startswith(str(root)):
+    # 只允许读取项目根目录下的文件（使用 relative_to 防止字符串前缀绕过）
+    try:
+        p.relative_to(root)
+    except ValueError:
         raise ValueError(f"System prompt path must be under project root: {path}")
-    # 限制文件大小（1MB）
-    max_size = 1 * 1024 * 1024
-    if p.stat().st_size > max_size:
-        raise ValueError(f"System prompt file too large (>1MB): {path}")
+    # 必须是存在的普通文件
+    if not p.is_file():
+        raise ValueError(f"System prompt must be a valid file: {path}")
+    # 限制文件大小
+    if p.stat().st_size > MAX_PROMPT_SIZE_BYTES:
+        raise ValueError(f"System prompt file too large (>{MAX_PROMPT_SIZE_BYTES // 1024 // 1024}MB): {path}")
     with open(p, "r", encoding="utf-8") as f:
         return f.read()
 
@@ -70,17 +76,23 @@ def call_moonshot_api(
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
         ],
-        "max_tokens": 8192,
+        "max_tokens": MAX_OUTPUT_TOKENS,
     }
 
     data = json.dumps(payload, ensure_ascii=False).encode("utf-8")
     req = urllib.request.Request(url, data=data, headers=headers, method="POST")
 
     try:
-        with urllib.request.urlopen(req, timeout=API_TIMEOUT) as resp:
+        with urllib.request.urlopen(req, timeout=API_TIMEOUT_SECONDS) as resp:
             result = json.loads(resp.read().decode("utf-8"))
     except urllib.error.HTTPError as e:
         body = e.read().decode("utf-8", errors="ignore")
+        if e.code == 401:
+            raise RuntimeError(f"API authentication failed (401): check KIMI_API_KEY")
+        elif e.code == 429:
+            raise RuntimeError(f"API rate limited (429): please retry later")
+        elif e.code >= 500:
+            raise RuntimeError(f"API server error ({e.code}): {body[:500]}")
         raise RuntimeError(f"API HTTP error {e.code}: {body[:500]}")
     except urllib.error.URLError as e:
         raise RuntimeError(f"API connection error: {e.reason}")
