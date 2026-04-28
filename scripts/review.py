@@ -37,8 +37,17 @@ API_TIMEOUT = 600
 
 
 def load_system_prompt(path: str) -> str:
-    """加载系统提示词"""
-    with open(path, "r", encoding="utf-8") as f:
+    """加载系统提示词，校验路径安全性"""
+    p = Path(path).resolve()
+    root = Path(__file__).parent.parent.resolve()
+    # 只允许读取项目根目录下的文件
+    if not str(p).startswith(str(root)):
+        raise ValueError(f"System prompt path must be under project root: {path}")
+    # 限制文件大小（1MB）
+    max_size = 1 * 1024 * 1024
+    if p.stat().st_size > max_size:
+        raise ValueError(f"System prompt file too large (>1MB): {path}")
+    with open(p, "r", encoding="utf-8") as f:
         return f.read()
 
 
@@ -325,7 +334,12 @@ def main():
 
     system_prompt_path = os.environ.get("KIMI_AGENT_FILE", DEFAULT_AGENT)
     model = os.environ.get("KIMI_MODEL")
-    max_diff = int(os.environ.get("REVIEW_MAX_DIFF", DEFAULT_MAX_DIFF))
+    max_diff_raw = os.environ.get("REVIEW_MAX_DIFF", str(DEFAULT_MAX_DIFF))
+    try:
+        max_diff = int(max_diff_raw)
+    except ValueError:
+        print(f"[review] 错误: REVIEW_MAX_DIFF 必须是整数， got '{max_diff_raw}'", file=sys.stderr)
+        sys.exit(1)
     output_path = os.environ.get("REVIEW_OUTPUT")
     json_output = os.environ.get("REVIEW_JSON_OUTPUT", "review_result.json")
 
