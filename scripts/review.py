@@ -61,7 +61,7 @@ def call_moonshot_api(
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
         ],
-        "max_tokens": 32000,
+        "max_tokens": 8192,
     }
 
     data = json.dumps(payload, ensure_ascii=False).encode("utf-8")
