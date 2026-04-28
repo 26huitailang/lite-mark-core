@@ -12,6 +12,7 @@ Kimi Code Review - 本地/CI 通用代码审查脚本（LiteMark 定制版）
 环境变量:
   KIMI_API_KEY       Moonshot API Key（必须）
   KIMI_MODEL         指定模型（默认: kimi-k2.6）
+  KIMI_AGENT_FILE    系统提示词文件路径（默认: .kimi/agents/reviewer-system.md）
   REVIEW_MAX_DIFF    diff 最大行数，超长的会截断（默认: 800）
   REVIEW_OUTPUT      输出文件路径（默认: stdout）
   REVIEW_JSON_OUTPUT 结构化 JSON 输出路径（默认: review_result.json）
@@ -52,6 +53,7 @@ def call_moonshot_api(
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
+        "Accept": "application/json",
     }
     payload = {
         "model": model,
@@ -210,10 +212,6 @@ def run_kimi_review(
 
     system_prompt = load_system_prompt(system_prompt_path)
     model = model or os.environ.get("KIMI_MODEL", DEFAULT_MODEL)
-    # Moonshot API 模型名不需要 provider 前缀（如 moonshot-cn/kimi-k2.6 -> kimi-k2.6）
-    if "/" in model:
-        model = model.split("/")[-1]
-
     print(f"[review] Calling Moonshot API (model={model})...", file=sys.stderr)
     try:
         raw = call_moonshot_api(system_prompt, prompt, api_key, model)

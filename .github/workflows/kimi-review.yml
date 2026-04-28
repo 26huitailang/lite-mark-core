@@ -40,7 +40,7 @@ jobs:
         id: review
         env:
           KIMI_API_KEY: ${{ secrets.KIMI_API_KEY }}
-          KIMI_MODEL: moonshot-cn/kimi-k2.6
+          KIMI_MODEL: kimi-k2.6
           REVIEW_MAX_DIFF: "800"
           REVIEW_OUTPUT: "review_report.md"
           REVIEW_JSON_OUTPUT: "review_result.json"
