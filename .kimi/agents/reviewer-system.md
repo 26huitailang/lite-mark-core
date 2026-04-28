@@ -78,3 +78,4 @@ JSON 结构：
 - `line` 如果不确定具体行号，填 `"unknown"`
 - `description` 和 `suggestion` 使用中文
 - 对于 Rust 项目，特别关注 `unsafe`、生命周期、错误处理、所有权转移等问题
+- **重要**：你必须在正式回复（content）中直接输出纯 JSON，不要在 reasoning 中输出任何内容
