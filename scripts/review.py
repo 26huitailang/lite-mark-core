@@ -22,12 +22,34 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 from typing import Optional
 
 
 DEFAULT_AGENT = ".kimi/agents/reviewer.yaml"
 DEFAULT_MAX_DIFF = 800
+DEFAULT_MODEL = "moonshot-cn/kimi-k2.6"
+
+
+def create_kimi_config(api_key: str, model: str = DEFAULT_MODEL) -> str:
+    """创建临时 kimi 配置文件，返回文件路径"""
+    config_content = f'''default_model = "{model}"
+
+[models."{model}"]
+provider = "moonshot-cn"
+model = "{model.split('/')[-1]}"
+max_context_size = 262144
+
+[providers.moonshot-cn]
+type = "kimi"
+base_url = "https://api.moonshot.cn/v1"
+api_key = "{api_key}"
+'''
+    fd, path = tempfile.mkstemp(suffix=".toml", prefix="kimi_config_")
+    with os.fdopen(fd, "w") as f:
+        f.write(config_content)
+    return path
 
 
 def run_git(args: list[str]) -> str:
@@ -142,19 +164,30 @@ def build_prompt(diff: str, stats: dict) -> str:
 
 def run_kimi_review(prompt: str, agent_file: str, model: Optional[str] = None) -> dict:
     """调用 kimi cli 进行审查"""
+    api_key = os.environ.get("KIMI_API_KEY")
+    config_file = None
+    env = os.environ.copy()
+
+    # 如果提供了 API key，创建临时配置文件（避免写入持久化磁盘）
+    if api_key:
+        config_file = create_kimi_config(api_key, model or DEFAULT_MODEL)
+        env["KIMI_API_KEY"] = api_key
+
     cmd = [
         "kimi",
         "--agent-file", agent_file,
         "-p", prompt,
         "--print", "--final-message-only", "--yolo",
     ]
-    if model:
+    if config_file:
+        cmd.extend(["--config-file", config_file])
+    elif model:
         cmd.extend(["-m", model])
 
     print(f"[review] Running: {' '.join(cmd[:4])} ...", file=sys.stderr)
     try:
         result = subprocess.run(
-            cmd, capture_output=True, text=True, stdin=subprocess.DEVNULL, timeout=300
+            cmd, capture_output=True, text=True, stdin=subprocess.DEVNULL, timeout=300, env=env
         )
     except subprocess.TimeoutExpired as e:
         print(
@@ -162,9 +195,15 @@ def run_kimi_review(prompt: str, agent_file: str, model: Optional[str] = None) -
             f"建议：减小变更范围、降低 REVIEW_MAX_DIFF，或分文件审查。",
             file=sys.stderr,
         )
+        if config_file:
+            os.unlink(config_file)
         # 尝试用已捕获的输出兜底
         raw = (e.stdout or "").decode("utf-8", errors="ignore") if isinstance(e.stdout, bytes) else (e.stdout or "")
         return extract_json(raw)
+
+    # 清理临时配置文件
+    if config_file:
+        os.unlink(config_file)
 
     if result.returncode != 0:
         print(f"[review] kimi 执行失败 (exit={result.returncode}):", file=sys.stderr)

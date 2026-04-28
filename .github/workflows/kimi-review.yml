@@ -49,26 +49,7 @@ jobs:
           REVIEW_OUTPUT: "review_report.md"
           REVIEW_JSON_OUTPUT: "review_result.json"
         run: |
-          # 配置 kimi CLI（需要完整的 models + providers 配置）
-          # 使用临时配置并在审查完成后立即清理，避免 API key 长期驻留磁盘
-          mkdir -p ~/.kimi
-          cat > ~/.kimi/config.toml << EOF
-          default_model = "moonshot-cn/kimi-k2.6"
-
-          [models."moonshot-cn/kimi-k2.6"]
-          provider = "moonshot-cn"
-          model = "kimi-k2.6"
-          max_context_size = 262144
-
-          [providers.moonshot-cn]
-          type = "kimi"
-          base_url = "https://api.moonshot.cn/v1"
-          api_key = "${KIMI_API_KEY}"
-          EOF
-
-          # 确保脚本退出时清理配置文件
-          trap 'rm -f ~/.kimi/config.toml' EXIT
-
+          # 审查脚本会自动创建临时配置文件并在完成后清理
           python3 scripts/review.py pr origin/${{ github.base_ref }}
 
       - name: Upload Review Artifacts
