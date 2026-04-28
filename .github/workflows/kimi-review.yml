@@ -11,6 +11,9 @@ on:
       - 'tests/src/**'
       - 'Cargo.toml'
       - 'litemark-*/Cargo.toml'
+      - '.github/workflows/kimi-review.yml'
+      - 'scripts/review.py'
+      - '.kimi/agents/**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
