@@ -45,7 +45,7 @@ jobs:
       - name: Run Kimi Review
         env:
           KIMI_API_KEY: ${{ secrets.KIMI_API_KEY }}
-          REVIEW_MAX_DIFF: "1200"
+          REVIEW_MAX_DIFF: "800"
           REVIEW_OUTPUT: "review_report.md"
           REVIEW_JSON_OUTPUT: "review_result.json"
         run: |

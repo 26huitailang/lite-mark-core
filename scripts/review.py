@@ -187,11 +187,11 @@ def run_kimi_review(prompt: str, agent_file: str, model: Optional[str] = None) -
     print(f"[review] Running: {' '.join(cmd[:4])} ...", file=sys.stderr)
     try:
         result = subprocess.run(
-            cmd, capture_output=True, text=True, stdin=subprocess.DEVNULL, timeout=300, env=env
+            cmd, capture_output=True, text=True, stdin=subprocess.DEVNULL, timeout=600, env=env
         )
     except subprocess.TimeoutExpired as e:
         print(
-            f"[review] kimi 执行超时（300s），diff 可能过大。"
+            f"[review] kimi 执行超时（600s），diff 可能过大。"
             f"建议：减小变更范围、降低 REVIEW_MAX_DIFF，或分文件审查。",
             file=sys.stderr,
         )
