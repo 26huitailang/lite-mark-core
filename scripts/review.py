@@ -86,7 +86,10 @@ def call_moonshot_api(
         with urllib.request.urlopen(req, timeout=API_TIMEOUT_SECONDS) as resp:
             result = json.loads(resp.read().decode("utf-8"))
     except urllib.error.HTTPError as e:
-        body = e.read().decode("utf-8", errors="ignore")
+        try:
+            body = e.read().decode("utf-8", errors="ignore") if e.fp else ""
+        except Exception:
+            body = ""
         if e.code == 401:
             raise RuntimeError(f"API authentication failed (401): check KIMI_API_KEY")
         elif e.code == 429:
@@ -106,15 +109,13 @@ def call_moonshot_api(
     # 安全获取嵌套字段
     message = (choices[0].get("message") or {})
     content = message.get("content")
-    if content is None:
+    if content is None or content == "":
         # 推理模型可能将结果放在 reasoning_content 中
         reasoning = message.get("reasoning_content", "")
         if reasoning:
             content = reasoning
         else:
             raise RuntimeError(f"API returned empty content: {result}")
-    elif content == "":
-        raise RuntimeError(f"API returned empty string content: {result}")
 
     return content
 

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """review.py 单元测试"""
 
+import io
 import json
 import os
 import sys
@@ -88,13 +89,12 @@ class TestCallMoonshotApi(unittest.TestCase):
         self.assertEqual(result, '{"result": "from reasoning"}')
 
     @patch("urllib.request.urlopen")
-    def test_empty_string_rejected(self, mock_urlopen):
+    def test_empty_string_uses_reasoning(self, mock_urlopen):
         mock_urlopen.return_value.__enter__.return_value = self._mock_response(
-            content="", reasoning_content=""
+            content="", reasoning_content='{"result": "fallback"}'
         )
-        with self.assertRaises(RuntimeError) as ctx:
-            review.call_moonshot_api("sys", "user", "fake-key")
-        self.assertIn("empty string content", str(ctx.exception))
+        result = review.call_moonshot_api("sys", "user", "fake-key")
+        self.assertEqual(result, '{"result": "fallback"}')
 
     @patch("urllib.request.urlopen")
     def test_empty_content_no_reasoning(self, mock_urlopen):
@@ -109,12 +109,13 @@ class TestCallMoonshotApi(unittest.TestCase):
     def test_http_401(self, mock_urlopen):
         from urllib.error import HTTPError
 
+        fp = io.BytesIO(b'{"error": "unauthorized"}')
         mock_urlopen.side_effect = HTTPError(
             "https://api.moonshot.cn/v1/chat/completions",
             401,
             "Unauthorized",
             {},
-            None,
+            fp,
         )
         with self.assertRaises(RuntimeError) as ctx:
             review.call_moonshot_api("sys", "user", "fake-key")
@@ -124,16 +125,33 @@ class TestCallMoonshotApi(unittest.TestCase):
     def test_http_429(self, mock_urlopen):
         from urllib.error import HTTPError
 
+        fp = io.BytesIO(b'{"error": "rate limited"}')
         mock_urlopen.side_effect = HTTPError(
             "https://api.moonshot.cn/v1/chat/completions",
             429,
             "Too Many Requests",
             {},
-            None,
+            fp,
         )
         with self.assertRaises(RuntimeError) as ctx:
             review.call_moonshot_api("sys", "user", "fake-key")
         self.assertIn("rate limited", str(ctx.exception))
+
+    @patch("urllib.request.urlopen")
+    def test_http_500(self, mock_urlopen):
+        from urllib.error import HTTPError
+
+        fp = io.BytesIO(b'{"error": "server error"}')
+        mock_urlopen.side_effect = HTTPError(
+            "https://api.moonshot.cn/v1/chat/completions",
+            500,
+            "Internal Server Error",
+            {},
+            fp,
+        )
+        with self.assertRaises(RuntimeError) as ctx:
+            review.call_moonshot_api("sys", "user", "fake-key")
+        self.assertIn("server error", str(ctx.exception))
 
     @patch("urllib.request.urlopen")
     def test_no_choices(self, mock_urlopen):
@@ -143,6 +161,24 @@ class TestCallMoonshotApi(unittest.TestCase):
         with self.assertRaises(RuntimeError) as ctx:
             review.call_moonshot_api("sys", "user", "fake-key")
         self.assertIn("no choices", str(ctx.exception))
+
+    @patch("urllib.request.urlopen")
+    def test_invalid_json(self, mock_urlopen):
+        resp = MagicMock()
+        resp.read.return_value = b"not json"
+        mock_urlopen.return_value.__enter__.return_value = resp
+        with self.assertRaises(RuntimeError) as ctx:
+            review.call_moonshot_api("sys", "user", "fake-key")
+        self.assertIn("invalid JSON", str(ctx.exception))
+
+    @patch("urllib.request.urlopen")
+    def test_url_error(self, mock_urlopen):
+        from urllib.error import URLError
+
+        mock_urlopen.side_effect = URLError("connection refused")
+        with self.assertRaises(RuntimeError) as ctx:
+            review.call_moonshot_api("sys", "user", "fake-key")
+        self.assertIn("connection error", str(ctx.exception))
 
 
 class TestExtractJson(unittest.TestCase):
@@ -190,27 +226,6 @@ class TestParseStat(unittest.TestCase):
     def test_empty(self):
         result = review.parse_stat("")
         self.assertEqual(result["files_changed"], 0)
-
-
-class TestMaxDiffValidation(unittest.TestCase):
-    def test_positive(self):
-        os.environ["REVIEW_MAX_DIFF"] = "100"
-        # 只验证解析逻辑，不运行 main
-        raw = os.environ.get("REVIEW_MAX_DIFF", str(review.DEFAULT_MAX_DIFF))
-        val = int(raw)
-        self.assertGreater(val, 0)
-
-    def test_invalid_string(self):
-        with self.assertRaises(ValueError):
-            int("abc")
-
-    def test_negative(self):
-        with self.assertRaises(SystemExit):
-            # 模拟 main 中的校验
-            max_diff_raw = "-10"
-            max_diff = int(max_diff_raw)
-            if max_diff <= 0:
-                sys.exit(1)
 
 
 if __name__ == "__main__":
