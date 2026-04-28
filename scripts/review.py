@@ -59,7 +59,6 @@ def call_moonshot_api(
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
         ],
-        "temperature": 0.3,
         "max_tokens": 8192,
     }
 
