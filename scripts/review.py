@@ -10,8 +10,8 @@ Kimi Code Review - 本地/CI 通用代码审查脚本（LiteMark 定制版）
   python scripts/review.py diff <diff_file>   # 审查已有的 diff 文件
 
 环境变量:
-  KIMI_AGENT_FILE    自定义 Agent 文件路径（默认: .kimi/agents/reviewer.yaml）
-  KIMI_MODEL         指定模型（默认使用配置）
+  KIMI_API_KEY       Moonshot API Key（必须）
+  KIMI_MODEL         指定模型（默认: kimi-k2.6）
   REVIEW_MAX_DIFF    diff 最大行数，超长的会截断（默认: 800）
   REVIEW_OUTPUT      输出文件路径（默认: stdout）
   REVIEW_JSON_OUTPUT 结构化 JSON 输出路径（默认: review_result.json）
@@ -22,34 +22,70 @@ import os
 import re
 import subprocess
 import sys
-import tempfile
+import urllib.request
+import urllib.error
 from pathlib import Path
 from typing import Optional
 
 
-DEFAULT_AGENT = ".kimi/agents/reviewer.yaml"
+DEFAULT_AGENT = ".kimi/agents/reviewer-system.md"
 DEFAULT_MAX_DIFF = 800
-DEFAULT_MODEL = "moonshot-cn/kimi-k2.6"
+DEFAULT_MODEL = "kimi-k2.6"
+API_BASE_URL = "https://api.moonshot.cn/v1"
+API_TIMEOUT = 600
 
 
-def create_kimi_config(api_key: str, model: str = DEFAULT_MODEL) -> str:
-    """创建临时 kimi 配置文件，返回文件路径"""
-    config_content = f'''default_model = "{model}"
+def load_system_prompt(path: str) -> str:
+    """加载系统提示词"""
+    with open(path, "r", encoding="utf-8") as f:
+        return f.read()
 
-[models."{model}"]
-provider = "moonshot-cn"
-model = "{model.split('/')[-1]}"
-max_context_size = 262144
 
-[providers.moonshot-cn]
-type = "kimi"
-base_url = "https://api.moonshot.cn/v1"
-api_key = "{api_key}"
-'''
-    fd, path = tempfile.mkstemp(suffix=".toml", prefix="kimi_config_")
-    with os.fdopen(fd, "w") as f:
-        f.write(config_content)
-    return path
+def call_moonshot_api(
+    system_prompt: str,
+    user_prompt: str,
+    api_key: str,
+    model: str = DEFAULT_MODEL,
+) -> str:
+    """直接调用 Moonshot API，返回 assistant 的文本输出"""
+    url = f"{API_BASE_URL}/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+    payload = {
+        "model": model,
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ],
+        "temperature": 0.3,
+        "max_tokens": 8192,
+    }
+
+    data = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+    req = urllib.request.Request(url, data=data, headers=headers, method="POST")
+
+    try:
+        with urllib.request.urlopen(req, timeout=API_TIMEOUT) as resp:
+            result = json.loads(resp.read().decode("utf-8"))
+    except urllib.error.HTTPError as e:
+        body = e.read().decode("utf-8", errors="ignore")
+        raise RuntimeError(f"API HTTP error {e.code}: {body[:500]}")
+    except urllib.error.URLError as e:
+        raise RuntimeError(f"API connection error: {e.reason}")
+    except json.JSONDecodeError as e:
+        raise RuntimeError(f"API returned invalid JSON: {e}")
+
+    choices = result.get("choices", [])
+    if not choices:
+        raise RuntimeError(f"API returned no choices: {result}")
+
+    content = choices[0].get("message", {}).get("content", "")
+    if not content:
+        raise RuntimeError(f"API returned empty content: {result}")
+
+    return content
 
 
 def run_git(args: list[str]) -> str:
@@ -162,62 +198,27 @@ def build_prompt(diff: str, stats: dict) -> str:
 请严格按照系统提示词要求的 JSON 格式输出审查结果。"""
 
 
-def run_kimi_review(prompt: str, agent_file: str, model: Optional[str] = None) -> dict:
-    """调用 kimi cli 进行审查"""
+def run_kimi_review(
+    prompt: str,
+    system_prompt_path: str,
+    model: Optional[str] = None,
+) -> dict:
+    """调用 Moonshot API 进行审查"""
     api_key = os.environ.get("KIMI_API_KEY")
-    config_file = None
-    env = os.environ.copy()
-
-    # 如果提供了 API key，创建临时配置文件（避免写入持久化磁盘）
-    if api_key:
-        config_file = create_kimi_config(api_key, model or DEFAULT_MODEL)
-        env["KIMI_API_KEY"] = api_key
-
-    cmd = [
-        "kimi",
-        "--agent-file", agent_file,
-        "-p", prompt,
-        "--print", "--final-message-only", "--yolo",
-    ]
-    if config_file:
-        cmd.extend(["--config-file", config_file])
-    elif model:
-        cmd.extend(["-m", model])
-
-    print(f"[review] Running: {' '.join(cmd[:4])} ...", file=sys.stderr)
-    try:
-        result = subprocess.run(
-            cmd, capture_output=True, text=True, stdin=subprocess.DEVNULL, timeout=600, env=env
-        )
-    except subprocess.TimeoutExpired as e:
-        print(
-            f"[review] kimi 执行超时（600s），diff 可能过大。"
-            f"建议：减小变更范围、降低 REVIEW_MAX_DIFF，或分文件审查。",
-            file=sys.stderr,
-        )
-        if config_file:
-            os.unlink(config_file)
-        # 尝试用已捕获的输出兜底
-        raw = (e.stdout or "").decode("utf-8", errors="ignore") if isinstance(e.stdout, bytes) else (e.stdout or "")
-        return extract_json(raw)
-
-    # 清理临时配置文件
-    if config_file:
-        os.unlink(config_file)
-
-    if result.returncode != 0:
-        print(f"[review] kimi 执行失败 (exit={result.returncode}):", file=sys.stderr)
-        if result.stdout:
-            print(f"[review] stdout:\n{result.stdout[:2000]}", file=sys.stderr)
-        if result.stderr:
-            print(f"[review] stderr:\n{result.stderr[:2000]}", file=sys.stderr)
+    if not api_key:
+        print("[review] 错误: 未设置 KIMI_API_KEY 环境变量", file=sys.stderr)
         sys.exit(1)
 
-    raw = result.stdout.strip()
-    # 过滤掉 resume hint 行
-    lines = raw.splitlines()
-    filtered_lines = [l for l in lines if not l.startswith("To resume this session:")]
-    raw = "\n".join(filtered_lines).strip()
+    system_prompt = load_system_prompt(system_prompt_path)
+    model = model or os.environ.get("KIMI_MODEL", DEFAULT_MODEL)
+
+    print(f"[review] Calling Moonshot API (model={model})...", file=sys.stderr)
+    try:
+        raw = call_moonshot_api(system_prompt, prompt, api_key, model)
+    except RuntimeError as e:
+        print(f"[review] API 调用失败: {e}", file=sys.stderr)
+        sys.exit(1)
+
     # 尝试从输出中提取 JSON（可能夹杂其他文本）
     return extract_json(raw)
 
@@ -317,17 +318,17 @@ def main():
     mode = sys.argv[1]
     target = sys.argv[2] if len(sys.argv) > 2 else None
 
-    agent_file = os.environ.get("KIMI_AGENT_FILE", DEFAULT_AGENT)
+    system_prompt_path = os.environ.get("KIMI_AGENT_FILE", DEFAULT_AGENT)
     model = os.environ.get("KIMI_MODEL")
     max_diff = int(os.environ.get("REVIEW_MAX_DIFF", DEFAULT_MAX_DIFF))
     output_path = os.environ.get("REVIEW_OUTPUT")
     json_output = os.environ.get("REVIEW_JSON_OUTPUT", "review_result.json")
 
-    # 如果 agent 文件是相对路径，基于项目根目录解析
-    if not Path(agent_file).is_absolute():
+    # 如果 system prompt 文件是相对路径，基于项目根目录解析
+    if not Path(system_prompt_path).is_absolute():
         # 脚本在 scripts/ 下，项目根目录是上级
         root = Path(__file__).parent.parent
-        agent_file = str(root / agent_file)
+        system_prompt_path = str(root / system_prompt_path)
 
     print(f"[review] Mode: {mode}, Target: {target}", file=sys.stderr)
 
@@ -344,7 +345,7 @@ def main():
     prompt = build_prompt(diff, stats)
 
     # 3. 运行审查
-    result = run_kimi_review(prompt, agent_file, model)
+    result = run_kimi_review(prompt, system_prompt_path, model)
 
     # 4. 保存 JSON
     with open(json_output, "w", encoding="utf-8") as f:
