@@ -103,14 +103,18 @@ def call_moonshot_api(
     if not choices:
         raise RuntimeError(f"API returned no choices: {result}")
 
-    content = choices[0].get("message", {}).get("content", "")
-    # 推理模型（如 kimi-k2.6）可能将内容放在 reasoning_content 中
-    if not content:
-        reasoning = choices[0].get("message", {}).get("reasoning_content", "")
+    # 安全获取嵌套字段
+    message = (choices[0].get("message") or {})
+    content = message.get("content")
+    if content is None:
+        # 推理模型可能将结果放在 reasoning_content 中
+        reasoning = message.get("reasoning_content", "")
         if reasoning:
             content = reasoning
         else:
             raise RuntimeError(f"API returned empty content: {result}")
+    elif content == "":
+        raise RuntimeError(f"API returned empty string content: {result}")
 
     return content
 
@@ -351,6 +355,9 @@ def main():
         max_diff = int(max_diff_raw)
     except ValueError:
         print(f"[review] 错误: REVIEW_MAX_DIFF 必须是整数， got '{max_diff_raw}'", file=sys.stderr)
+        sys.exit(1)
+    if max_diff <= 0:
+        print(f"[review] 错误: REVIEW_MAX_DIFF 必须为正整数， got '{max_diff_raw}'", file=sys.stderr)
         sys.exit(1)
     output_path = os.environ.get("REVIEW_OUTPUT")
     json_output = os.environ.get("REVIEW_JSON_OUTPUT", "review_result.json")
