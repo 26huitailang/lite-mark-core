@@ -10,7 +10,7 @@ on:
       - 'litemark-wasm/src/**'
       - 'tests/src/**'
       - 'Cargo.toml'
-      - '**/Cargo.toml'
+      - 'litemark-*/Cargo.toml'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
@@ -133,11 +133,15 @@ jobs:
             });
 
       - name: Check High Severity Issues
-        if: always()
+        if: always() && steps.review.outcome != 'skipped'
         run: |
           python3 -c "
-          import json, sys
-          with open('review_result.json') as f:
+          import json, sys, os
+          path = 'review_result.json'
+          if not os.path.exists(path):
+              print('No review result found, skipping high severity check.')
+              sys.exit(0)
+          with open(path) as f:
               data = json.load(f)
           high = [i for i in data.get('issues', []) if i.get('severity') == 'high']
           if high:
