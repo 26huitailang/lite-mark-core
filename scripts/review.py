@@ -61,7 +61,7 @@ def call_moonshot_api(
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
         ],
-        "max_tokens": 8192,
+        "max_tokens": 32000,
     }
 
     data = json.dumps(payload, ensure_ascii=False).encode("utf-8")
@@ -83,8 +83,13 @@ def call_moonshot_api(
         raise RuntimeError(f"API returned no choices: {result}")
 
     content = choices[0].get("message", {}).get("content", "")
+    # 推理模型（如 kimi-k2.6）可能将内容放在 reasoning_content 中
     if not content:
-        raise RuntimeError(f"API returned empty content: {result}")
+        reasoning = choices[0].get("message", {}).get("reasoning_content", "")
+        if reasoning:
+            content = reasoning
+        else:
+            raise RuntimeError(f"API returned empty content: {result}")
 
     return content
 
