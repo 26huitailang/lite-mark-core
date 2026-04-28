@@ -40,6 +40,9 @@ jobs:
       - name: Run clippy for native crates
         run: cargo clippy --workspace --all-targets --exclude litemark-wasm
 
+      - name: Build CLI binary
+        run: cargo build -p litemark-cli
+
       - name: Run native tests
         run: cargo test --workspace --exclude litemark-wasm --locked --lib --bins --tests
 
