@@ -8,3 +8,8 @@ __pycache__/
 # Review output
 review_result.json
 review_report.md
+# WASM build output
+litemark-wasm/pkg/
+# Frontend build output
+litemark-wasm/frontend/dist/
+litemark-wasm/frontend/node_modules/
