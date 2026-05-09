@@ -1,0 +1,49 @@
+{
+    "name": "Professional",
+    "anchor": "bottom-left",
+    "padding": 0,
+    "frame_height_ratio": 0.12,
+    "logo_size_ratio": 0.35,
+    "primary_font_ratio": 0.22,
+    "secondary_font_ratio": 0.14,
+    "padding_ratio": 0.15,
+    "render_mode": "gradient-frame",
+    "items": [
+        {
+            "type": "logo",
+            "value": "",
+            "font_size_ratio": 0.0,
+            "weight": "normal",
+            "color": null
+        },
+        {
+            "type": "text",
+            "value": "{Author}",
+            "font_size_ratio": 0.22,
+            "weight": "bold",
+            "color": "#1A1A1A"
+        },
+        {
+            "type": "text",
+            "value": "{DateTime}",
+            "font_size_ratio": 0.12,
+            "weight": "normal",
+            "color": "#AAAAAA"
+        },
+        {
+            "type": "text",
+            "value": "{Camera}  ·  {Lens}",
+            "font_size_ratio": 0.14,
+            "weight": "bold",
+            "color": "#333333"
+        },
+        {
+            "type": "text",
+            "value": "{Focal}    {Aperture}    {Shutter}    ISO {ISO}",
+            "font_size_ratio": 0.13,
+            "weight": "normal",
+            "color": "#777777"
+        }
+    ],
+    "background": null
+}

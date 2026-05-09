@@ -11,6 +11,9 @@ on:
       - 'tests/src/**'
       - 'Cargo.toml'
       - 'litemark-*/Cargo.toml'
+      - '.github/workflows/kimi-review.yml'
+      - 'scripts/review.py'
+      - '.kimi/agents/**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
@@ -33,23 +36,15 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install Kimi CLI
-        run: |
-          curl -LsSf https://code.kimi.com/install.sh | bash
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-
-      - name: Verify Kimi CLI
-        run: |
-          kimi --version
-
       - name: Run Kimi Review
+        id: review
         env:
           KIMI_API_KEY: ${{ secrets.KIMI_API_KEY }}
+          KIMI_MODEL: kimi-k2.6
           REVIEW_MAX_DIFF: "800"
           REVIEW_OUTPUT: "review_report.md"
           REVIEW_JSON_OUTPUT: "review_result.json"
         run: |
-          # 审查脚本会自动创建临时配置文件并在完成后清理
           python3 scripts/review.py pr origin/${{ github.base_ref }}
 
       - name: Upload Review Artifacts
@@ -123,7 +118,7 @@ jobs:
             const verdict = result.approve ? '✅ Approve' : '❌ Request Changes';
             body += `## Verdict: ${verdict}\n\n`;
             body += `💬 ${result.comment || ''}\n\n`;
-            body += `---\n*Powered by [Kimi Code CLI](https://github.com/MoonshotAI/kimi-cli)*`;
+            body += `---\n*Powered by [Moonshot AI](https://www.moonshot.cn)*`;
 
             github.rest.issues.createComment({
               issue_number: context.issue.number,

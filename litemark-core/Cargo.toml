@@ -34,4 +34,4 @@ thiserror = "2.0.17"
 tempfile = "3.8"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-libheif-rs = "2.5.1"
+libheif-rs = { version = "2.5.1", default-features = false, features = ["v1_17"] }
