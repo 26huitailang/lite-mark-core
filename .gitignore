@@ -1,6 +1,8 @@
 /target
 /output
 /.kimi/sessions
+/.claude/worktrees/
+settings.local.json
 # Python
 __pycache__/
 *.pyc
