@@ -1,4 +1,4 @@
-.PHONY: help build build-release test test-core test-cli clean demo demo-all install run
+.PHONY: help build build-release test test-core test-cli clean demo demo-all install run wasm-build frontend-build frontend-dev
 
 # 默认目标：显示帮助信息
 help:
@@ -25,6 +25,11 @@ help:
 	@echo "🧹 清理命令："
 	@echo "  make clean          - 清理构建产物"
 	@echo "  make clean-demo     - 清理 demo 输出"
+	@echo ""
+	@echo "🌐 前端命令："
+	@echo "  make wasm-build     - 构建 WASM 模块"
+	@echo "  make frontend-build - 构建前端（含 WASM）"
+	@echo "  make frontend-dev   - 启动前端开发服务器"
 	@echo ""
 	@echo "🚀 快捷命令："
 	@echo "  make run            - 快速运行 CLI（显示帮助）"
@@ -163,3 +168,17 @@ batch-example: build-release
 		--author $(DEMO_AUTHOR) \
 		--concurrency 4
 	@echo "✅ 批量处理完成: output/batch/"
+
+# WASM + 前端构建
+wasm-build:
+	@echo "🔨 构建 WASM..."
+	wasm-pack build litemark-wasm --target web --release
+
+frontend-build: wasm-build
+	@echo "🔨 构建前端..."
+	cd litemark-wasm/frontend && npm ci && npm run build
+	@echo "✅ 前端构建完成: litemark-wasm/frontend/dist/"
+
+frontend-dev: wasm-build
+	@echo "🚀 启动前端开发服务器..."
+	cd litemark-wasm/frontend && npm install && npm run dev
