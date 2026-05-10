@@ -12,7 +12,8 @@ export function useWasm() {
     isInitializing.value = true
     error.value = null
     try {
-      await init()
+      const wasmUrl = `${import.meta.env.BASE_URL}wasm/litemark_wasm_bg.wasm`
+      await init(wasmUrl)
       isReady.value = true
     } catch (err) {
       const wasmErr = parseWasmError(err)

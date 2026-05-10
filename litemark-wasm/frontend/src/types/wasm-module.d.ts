@@ -1,5 +1,7 @@
+/// <reference types="vite/client" />
+
 declare module '@wasm/litemark_wasm.js' {
-  export default function init(): Promise<void>
+  export default function init(url?: string): Promise<void>
   export function process_image(
     imageBytes: Uint8Array,
     templateJson: string,

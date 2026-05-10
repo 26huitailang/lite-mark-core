@@ -15,3 +15,4 @@ litemark-wasm/pkg/
 # Frontend build output
 litemark-wasm/frontend/dist/
 litemark-wasm/frontend/node_modules/
+litemark-wasm/frontend/public/wasm/
