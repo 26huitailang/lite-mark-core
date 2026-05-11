@@ -56,8 +56,8 @@
       </button>
     </div>
 
-    <div v-if="wasmStore.error" class="error-banner">
-      ❌ WASM 加载失败: {{ wasmStore.error }}
+    <div v-if="error" class="error-banner">
+      ❌ WASM 加载失败: {{ error }}
     </div>
   </div>
 </template>
@@ -76,7 +76,7 @@ const emit = defineEmits<{
 const filesStore = useFilesStore()
 const processingStore = useProcessingStore()
 const settingsStore = useSettingsStore()
-const wasmStore = useWasm()
+const { isReady, error, isInitializing } = useWasm()
 
 const author = ref(settingsStore.lastAuthor)
 const logoInput = ref<HTMLInputElement>()
@@ -87,7 +87,7 @@ watch(author, (val) => {
 })
 
 const canProcess = computed(() =>
-  wasmStore.isReady.value &&
+  isReady.value &&
   filesStore.hasFiles &&
   !processingStore.isProcessing
 )
