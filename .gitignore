@@ -3,6 +3,7 @@
 /.kimi/sessions
 /.claude/worktrees/
 settings.local.json
+.playwright-mcp/
 # Python
 __pycache__/
 *.pyc
