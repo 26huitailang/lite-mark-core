@@ -178,7 +178,7 @@ fn test_jpeg_encoding_quality() {
     let jpeg_data =
         litemark_core::image_io::encode_image(&image, ImageFormat::Jpeg).expect("JPEG 编码失败");
 
-    // JPEG 质量为 90%，文件大小应合理
+    // JPEG 质量为 95%，文件大小应合理
     assert!(jpeg_data.len() > 1000, "500x500 JPEG 应大于 1KB");
 }
 

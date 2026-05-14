@@ -70,10 +70,10 @@ pub fn encode_image(
     let mut buffer = Cursor::new(Vec::new());
 
     let output_format = match format {
-        ImageFormat::Jpeg => ImageOutputFormat::Jpeg(90), // 90% quality
+        ImageFormat::Jpeg => ImageOutputFormat::Jpeg(95), // 95% quality
         ImageFormat::Png => ImageOutputFormat::Png,
         ImageFormat::WebP => ImageOutputFormat::WebP,
-        _ => ImageOutputFormat::Jpeg(90), // 默认 JPEG
+        _ => ImageOutputFormat::Jpeg(95), // 默认 JPEG
     };
 
     image.write_to(&mut buffer, output_format)?;
