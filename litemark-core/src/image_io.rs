@@ -27,11 +27,18 @@ use std::io::Cursor;
 pub fn decode_image(image_data: &[u8]) -> Result<DynamicImage, Box<dyn std::error::Error>> {
     // 尝试检测是否为 HEIC/HEIF 格式
     if is_heic_format(image_data) {
-        return decode_heic_from_bytes(image_data);
+        let mut img = decode_heic_from_bytes(image_data)?;
+        if let Some(orientation) = read_exif_orientation(image_data) {
+            img = apply_orientation(img, orientation);
+        }
+        return Ok(img);
     }
 
     // 使用 image 库解码其他格式
-    let img = image::load_from_memory(image_data)?;
+    let mut img = image::load_from_memory(image_data)?;
+    if let Some(orientation) = read_exif_orientation(image_data) {
+        img = apply_orientation(img, orientation);
+    }
     Ok(img)
 }
 
@@ -71,6 +78,35 @@ pub fn encode_image(
 
     image.write_to(&mut buffer, output_format)?;
     Ok(buffer.into_inner())
+}
+
+/// 从图像字节中读取 EXIF Orientation 标签
+fn read_exif_orientation(image_data: &[u8]) -> Option<u32> {
+    use exif::{In, Reader, Tag, Value};
+
+    let mut cursor = std::io::Cursor::new(image_data);
+    let reader = Reader::new();
+    let exif = reader.read_from_container(&mut cursor).ok()?;
+    let field = exif.get_field(Tag::Orientation, In::PRIMARY)?;
+
+    match &field.value {
+        Value::Short(v) => v.first().copied().map(|v| v as u32),
+        _ => None,
+    }
+}
+
+/// 根据 EXIF Orientation 值应用像素旋转/翻转
+fn apply_orientation(img: DynamicImage, orientation: u32) -> DynamicImage {
+    match orientation {
+        2 => img.fliph(),
+        3 => img.rotate180(),
+        4 => img.flipv(),
+        5 => img.rotate90().fliph(),
+        6 => img.rotate90(),
+        7 => img.flipv().rotate90(),
+        8 => img.rotate270(),
+        _ => img,
+    }
 }
 
 /// 检测字节数据的图像格式
