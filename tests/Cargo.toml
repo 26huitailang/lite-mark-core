@@ -20,6 +20,7 @@ walkdir = "2.4"
 tera = "1.19"
 chrono = "0.4"
 anyhow = "1.0"
+kamadak-exif = "0.6.1"
 
 [dev-dependencies]
 criterion = { version = "0.5", features = ["html_reports"] }

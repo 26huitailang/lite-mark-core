@@ -187,3 +187,111 @@ fn create_test_image(width: u32, height: u32, color: [u8; 3]) -> DynamicImage {
     let img = RgbImage::from_fn(width, height, |_, _| Rgb(color));
     DynamicImage::ImageRgb8(img)
 }
+
+/// 辅助函数：创建一个带 EXIF Orientation 标签的 JPEG 测试图像
+/// orientation: 1=正常, 6=顺时针90°(竖向照片常见)
+fn create_jpeg_with_orientation(
+    width: u32,
+    height: u32,
+    orientation: u16,
+) -> Vec<u8> {
+    use exif::experimental::Writer;
+    use exif::{Field, In, Tag, Value};
+
+    // 1. 创建基础 JPEG（使用 image 库）
+    let img = RgbImage::from_fn(width, height, |x, y| {
+        Rgb([
+            ((x as f32 / width as f32) * 255.0) as u8,
+            ((y as f32 / height as f32) * 255.0) as u8,
+            128,
+        ])
+    });
+    let image = DynamicImage::ImageRgb8(img);
+
+    let mut jpeg_bytes = Vec::new();
+    {
+        let mut cursor = std::io::Cursor::new(&mut jpeg_bytes);
+        image
+            .write_to(&mut cursor, image::ImageOutputFormat::Jpeg(95))
+            .expect("编码 JPEG 失败");
+    }
+
+    // 2. 构造 EXIF Orientation 字段
+    let orientation_field = Field {
+        tag: Tag::Orientation,
+        ifd_num: In::PRIMARY,
+        value: Value::Short(vec![orientation]),
+    };
+
+    // 3. 使用 kamadak-exif Writer 生成 TIFF 数据
+    let mut writer = Writer::new();
+    writer.push_field(&orientation_field);
+    let mut exif_tiff = Vec::new();
+    {
+        let mut cursor = std::io::Cursor::new(&mut exif_tiff);
+        writer.write(&mut cursor, true).expect("写入 EXIF 失败");
+    }
+
+    // 4. 将 EXIF 嵌入 JPEG（插入 SOI 之后）
+    let app1_length = 2 + 6 + exif_tiff.len();
+    let mut app1_segment = Vec::new();
+    app1_segment.push(0xFF);
+    app1_segment.push(0xE1);
+    app1_segment.push(((app1_length >> 8) & 0xFF) as u8);
+    app1_segment.push((app1_length & 0xFF) as u8);
+    app1_segment.extend_from_slice(b"Exif\x00\x00");
+    app1_segment.extend_from_slice(&exif_tiff);
+
+    // 在 SOI (FF D8) 之后插入 APP1 段
+    let mut result = Vec::new();
+    result.push(0xFF);
+    result.push(0xD8);
+    result.extend_from_slice(&app1_segment);
+    result.extend_from_slice(&jpeg_bytes[2..]);
+
+    result
+}
+
+/// 测试 EXIF Orientation=6（顺时针90°）被正确应用
+#[test]
+fn test_decode_image_applies_exif_orientation_6() {
+    let jpeg_data = create_jpeg_with_orientation(400, 300, 6);
+
+    let decoded = litemark_core::image_io::decode_image(&jpeg_data)
+        .expect("带 EXIF 的 JPEG 解码失败");
+
+    assert_eq!(
+        decoded.width(), 300,
+        "Orientation=6 应用后，宽度应从 400 变为 300"
+    );
+    assert_eq!(
+        decoded.height(), 400,
+        "Orientation=6 应用后，高度应从 300 变为 400"
+    );
+}
+
+/// 测试 EXIF Orientation=1（正常）不触发旋转
+#[test]
+fn test_decode_image_preserves_orientation_1() {
+    let jpeg_data = create_jpeg_with_orientation(400, 300, 1);
+
+    let decoded = litemark_core::image_io::decode_image(&jpeg_data)
+        .expect("带 EXIF 的 JPEG 解码失败");
+
+    assert_eq!(decoded.width(), 400, "Orientation=1 应保持原宽度");
+    assert_eq!(decoded.height(), 300, "Orientation=1 应保持原高度");
+}
+
+/// 测试无 EXIF 的图像正常解码
+#[test]
+fn test_decode_image_without_exif_orientation() {
+    let image = create_test_image(400, 300, [128, 128, 128]);
+    let jpeg_data = litemark_core::image_io::encode_image(&image, ImageFormat::Jpeg)
+        .expect("编码失败");
+
+    let decoded = litemark_core::image_io::decode_image(&jpeg_data)
+        .expect("解码失败");
+
+    assert_eq!(decoded.width(), 400);
+    assert_eq!(decoded.height(), 300);
+}
