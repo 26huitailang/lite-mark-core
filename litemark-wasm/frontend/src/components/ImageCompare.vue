@@ -10,14 +10,30 @@
         <div
           ref="containerRef"
           class="compare-container"
+          :style="containerStyle"
           @mousemove="onMove"
           @touchmove.prevent="onTouchMove"
         >
-          <img :src="processedUrl" class="compare-image processed" alt="处理后" />
-          <div class="clip-layer" :style="{ clipPath: `inset(0 ${100 - clipPercent}% 0 0)` }">
-            <img :src="originalUrl" class="compare-image original" alt="原图" />
+          <img
+            ref="processedImgRef"
+            :src="processedUrl"
+            class="compare-image processed"
+            alt="处理后"
+            @load="onImageLoad"
+          />
+          <div
+            class="clip-layer"
+            :style="clipLayerStyle"
+          >
+            <img
+              ref="originalImgRef"
+              :src="originalUrl"
+              class="compare-image original"
+              alt="原图"
+              @load="onImageLoad"
+            />
           </div>
-          <div class="slider-handle" :style="{ left: clipPercent + '%' }">
+          <div class="slider-handle" :style="sliderStyle">
             <div class="slider-line" />
             <div class="slider-knob">◀ ▶</div>
           </div>
@@ -33,9 +49,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 
-defineProps<{
+const props = defineProps<{
   originalUrl: string
   processedUrl: string
 }>()
@@ -45,7 +61,16 @@ const emit = defineEmits<{
 }>()
 
 const containerRef = ref<HTMLDivElement>()
+const processedImgRef = ref<HTMLImageElement>()
+const originalImgRef = ref<HTMLImageElement>()
 const clipPercent = ref(50)
+const loadedImages = ref(0)
+
+const isReady = computed(() => loadedImages.value >= 2)
+
+function onImageLoad() {
+  loadedImages.value++
+}
 
 function updateClip(clientX: number) {
   if (!containerRef.value) return
@@ -62,8 +87,27 @@ function onTouchMove(e: TouchEvent) {
   updateClip(e.touches[0].clientX)
 }
 
+const containerStyle = computed(() => {
+  if (!isReady.value || !processedImgRef.value) return {}
+  const img = processedImgRef.value
+  return {
+    aspectRatio: `${img.naturalWidth} / ${img.naturalHeight}`
+  }
+})
+
+const clipLayerStyle = computed(() => {
+  return {
+    clipPath: `inset(0 ${100 - clipPercent.value}% 0 0)`
+  }
+})
+
+const sliderStyle = computed(() => {
+  return {
+    left: `${clipPercent.value}%`
+  }
+})
+
 onMounted(() => {
-  // Prevent body scroll
   document.body.style.overflow = 'hidden'
 })
 
@@ -71,7 +115,6 @@ onUnmounted(() => {
   document.body.style.overflow = ''
 })
 </script>
-
 
 <style scoped>
 .compare-modal {
@@ -122,21 +165,24 @@ onUnmounted(() => {
 
 .compare-container {
   position: relative;
-  flex: 1;
+  width: 100%;
+  max-height: 70vh;
   overflow: hidden;
   cursor: ew-resize;
 }
 
 .compare-image {
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
-  height: auto;
-  max-height: 70vh;
+  height: 100%;
   object-fit: contain;
   display: block;
 }
 
 .compare-image.processed {
-  position: relative;
+  z-index: 1;
 }
 
 .clip-layer {
@@ -145,6 +191,7 @@ onUnmounted(() => {
   left: 0;
   width: 100%;
   height: 100%;
+  z-index: 2;
   overflow: hidden;
 }
 
@@ -164,6 +211,7 @@ onUnmounted(() => {
   width: 0;
   transform: translateX(-50%);
   pointer-events: none;
+  z-index: 3;
 }
 
 .slider-line {
