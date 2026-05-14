@@ -976,6 +976,7 @@ dependencies = [
  "crc32fast",
  "criterion",
  "image",
+ "kamadak-exif",
  "litemark-cli",
  "litemark-core",
  "predicates",
